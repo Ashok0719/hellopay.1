@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "hellopay-2d4bf"
+  },
+  "targets": {
+    "hellopay-2d4bf": {
+      "hosting": {
+        "admin": [
+          "hellopay-admin-v2"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

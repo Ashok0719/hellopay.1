@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "site": "hellopay-admin-v2",
+    "public": "out",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

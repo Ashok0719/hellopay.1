@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 2, 6, 23;
+  --background-end-rgb: 15, 23, 42;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: radial-gradient(circle at 50% 50%, #020617 0%, #000000 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(235, 61, 37, 0.03) 0%, transparent 60%);
+  animation: cyber-rotation 40s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes cyber-rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.admin-card {
+  @apply bg-slate-950/80 backdrop-blur-2xl border border-white/5 rounded-[32px] shadow-2xl;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.admin-card:hover {
+  transform: translateZ(20px) scale(1.005);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8), 0 0 50px rgba(235, 61, 37, 0.1);
+  border-color: rgba(235, 61, 37, 0.2);
+}
+
+.table-row {
+  @apply border-b border-slate-800 hover:bg-slate-800/50 transition-colors;
+}
+
+.btn-admin {
+  @apply bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-6 rounded-xl transition-all active:scale-95;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ffffff10;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ffffff20;
+}

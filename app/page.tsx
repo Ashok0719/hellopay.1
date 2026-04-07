@@ -1,0 +1,875 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  LayoutDashboard, 
+  Users, 
+  CreditCard, 
+  Zap, 
+  Settings, 
+  LogOut, 
+  Bell, 
+  Search, 
+  Activity, 
+  Terminal, 
+  CheckCircle, 
+  XCircle, 
+  Monitor, 
+  Plus, 
+  Save, 
+  Trash2, 
+  ShieldCheck, 
+  ChevronRight, 
+  UserPlus, 
+  LayoutGrid, 
+  Minus, 
+  Check, 
+  RefreshCw, 
+  Cpu,
+  Clock,
+  ArrowRightLeft,
+  Database,
+  Pin,
+  Star
+} from 'lucide-react';
+import axios from 'axios';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { io } from 'socket.io-client';
+
+const api = axios.create({
+  baseURL: typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api/admin'
+    : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin` : 'https://api.hellopayapp.com/api/admin'),
+});
+
+export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stats, setStats] = useState<any>(null);
+  const [config, setConfig] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stagedCount, setStagedCount] = useState(0);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [statsRes, configRes] = await Promise.all([
+        api.get('/analytics'),
+        api.get('/config')
+      ]);
+      setStats(statsRes.data);
+      if (configRes.data) {
+         const plans = (configRes.data.stockPlans || []).map((p: any) => ({
+           ...p, isActive: p.isActive !== undefined ? p.isActive : true
+         }));
+         setConfig({ ...configRes.data, stockPlans: plans });
+      } else {
+         // Handle empty response gracefully
+         setConfig({ stockPlans: [], globalCashbackPercent: 4 });
+      }
+    } catch (err) {
+      console.error('Initial data fetch failed');
+      // Prevent UI crash on data failure by providing functional defaults
+      setConfig({ stockPlans: [], globalCashbackPercent: 4 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000')
+      : 'https://api.hellopayapp.com';
+    const socket = io(socketUrl);
+
+    socket.on('userStatusChanged', (data) => {
+      console.log('[NEURAL] Identity Link Established:', data);
+      fetchData(); // Global re-sync on any user change/new user
+    });
+
+    return () => { socket.disconnect(); };
+  }, []);
+
+  const handleGlobalPush = async () => {
+    setIsSaving(true);
+    try {
+      await api.put('/config', config);
+      setStagedCount(0);
+      alert('Neural Core Synchronized Successfully');
+    } catch (err) {
+      alert('Propagation Failed');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleConfigChange = async (newConfig: any) => {
+    setConfig(newConfig);
+    setStagedCount(prev => prev + 1);
+    
+    // Instant Neural Sync: Auto-save to backend
+    try {
+      await api.put('/config', newConfig);
+      setStagedCount(0);
+    } catch (err) {
+      console.error('Auto-sync failed:', err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-blue-500/30 overflow-hidden flex">
+      {/* Sidebar */}
+      <aside className="w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
+           <div className="flex items-center gap-4 mb-20 px-8">
+              <div className="w-14 h-14 bg-blue-600 rounded-[20px] shadow-[0_20px_40px_rgba(37,99,235,0.4)] flex items-center justify-center">
+                 <Zap size={28} className="text-white fill-white" />
+              </div>
+              <div>
+                 <h1 className="text-2xl font-black italic tracking-tighter text-white leading-none">HelloPay</h1>
+                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mt-1 block">Admin Registry</span>
+              </div>
+           </div>
+
+        <nav className="flex-1 space-y-3">
+          <SidebarLink icon={<LayoutDashboard size={20}/>} label="Neural Dash" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <SidebarLink icon={<Users size={20}/>} label="Entity Registry" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+          <SidebarLink icon={<Database size={20}/>} label="Stock Management" active={activeTab === 'stocks'} onClick={() => setActiveTab('stocks')} />
+          <SidebarLink icon={<Zap size={20}/>} label="Splitup Processor" active={activeTab === 'splitup'} onClick={() => setActiveTab('splitup')} />
+          <SidebarLink icon={<LayoutGrid size={20}/>} label="Asset Manager" active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} />
+          <SidebarLink icon={<Activity size={20}/>} label="TX Monitoring" active={activeTab === 'monitoring'} onClick={() => setActiveTab('monitoring')} />
+          <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-80 p-12 overflow-y-auto max-h-screen custom-scrollbar relative">
+        <div className="flex justify-between items-center mb-16 relative z-10">
+          <div className="relative w-96">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
+            <input 
+              type="text" 
+              placeholder="Query Node..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full py-5 pl-16 pr-8 bg-slate-900/40 border border-white/5 rounded-[32px] text-sm focus:outline-none focus:border-blue-500/40 transition-all font-medium" 
+            />
+          </div>
+
+          <div className="flex items-center gap-8">
+            <motion.button 
+              animate={stagedCount > 0 ? { scale: [1, 1.05, 1], boxShadow: '0 0 30px rgba(37,99,235,0.4)' } : {}}
+              onClick={handleGlobalPush}
+              disabled={isSaving || !config}
+              className="flex items-center gap-4 px-12 py-5 bg-blue-600 rounded-[32px] text-white font-black text-[12px] uppercase tracking-[0.3em] shadow-xl hover:scale-105 active:scale-95 transition-all relative"
+            >
+              <Save size={18}/> {isSaving ? 'PUBLISHING...' : `Push Final Sync`}
+              {stagedCount > 0 && (
+                 <div className="absolute -top-3 -right-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-[11px] font-black italic border-2 border-[#020617] animate-bounce shadow-2xl">
+                   {stagedCount}
+                 </div>
+              )}
+            </motion.button>
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-xs text-white">DP</div>
+          </div>
+        </div>
+
+        {isLoading ? (
+           <div className="flex flex-col items-center justify-center h-[60vh] gap-6">
+              <RefreshCw className="text-blue-500 animate-spin" size={48} />
+              <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-600 animate-pulse">Establishing Signal...</p>
+           </div>
+        ) : (
+          <div className="relative z-10">
+            <AnimatePresence mode="wait">
+               {activeTab === 'dashboard' && <DashboardView key="dash" stats={stats} />}
+               {activeTab === 'users' && <UserRegistry key="users" searchQuery={searchQuery} />}
+               {activeTab === 'stocks' && <StockRegistry key="stocks" searchQuery={searchQuery} />}
+               {activeTab === 'splitup' && <SplitupRegistry key="splitup" searchQuery={searchQuery} />}
+               {activeTab === 'assets' && <AssetManager key="assets" config={config} setConfig={handleConfigChange} />}
+               {activeTab === 'monitoring' && <MonitoringView key="monitoring" searchQuery={searchQuery} />}
+               {activeTab === 'settings' && <OperationsCenter key="settings" config={config} setConfig={handleConfigChange} />}
+            </AnimatePresence>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// --- Dashboard View ---
+function DashboardView({ stats }: any) {
+  const chartData = stats?.dailyStats || [{ name: '00:00', val: 400 }, { name: '12:00', val: 900 }, { name: '23:59', val: 950 }];
+  return (
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-12 pb-20">
+      <div className="grid grid-cols-4 gap-10">
+        <StatCard label="Live Entities" value={stats?.totalUsers || '0'} icon={<Users size={24}/>} color="blue" />
+        <StatCard label="Network Flow" value={`₹${stats?.totalTransferred?.toLocaleString() || '0'}`} icon={<CreditCard size={24}/>} color="amber" />
+        <StatCard label="Neural Profit" value={`₹${stats?.totalAdminProfit?.toLocaleString() || '0'}`} icon={<Zap size={24}/>} color="emerald" />
+        <StatCard label="Released Yield" value={`₹${stats?.totalCashbackGiven?.toLocaleString() || '0'}`} icon={<Plus size={24}/>} color="purple" />
+      </div>
+      <div className="grid grid-cols-3 gap-12">
+        <div className="col-span-2 bg-[#030712] border border-white/5 rounded-[56px] p-12 h-[500px]">
+          <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-12">Throughput Matrix</h3>
+          <ResponsiveContainer width="100%" height="80%">
+             <AreaChart data={chartData}><Area type="monotone" dataKey="val" stroke="#3b82f6" fill="#1e3a8a22" strokeWidth={5} /></AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-[#030712] border border-white/5 rounded-[56px] p-10 flex flex-col h-[500px]">
+           <h3 className="text-xl font-black italic uppercase tracking-tighter mb-10 pb-8 border-b border-white/5 flex items-center gap-4"><Terminal size={24}/> Neural Logs</h3>
+           <div className="flex-1 space-y-6 overflow-y-auto pr-2 scrollbar-hide font-mono text-[11px]">
+              <LogItem type="success" msg="Signal: AUTH_NODE_X92" timestamp="LIVE" />
+              <LogItem type="info" msg="Connecting Liquidity_SYNC..." timestamp="LIVE" />
+              <LogItem type="warning" msg="Manual Override ACTIVE" timestamp="LIVE" />
+           </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function UserRegistry({ searchQuery }: { searchQuery: string }) {
+  const [users, setUsers] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try { const { data } = await api.get('/users'); setUsers(data); } catch (err) {}
+    };
+    fetchUsers();
+  }, []);
+  const handleBlock = async (id: string, isBlocked: boolean) => {
+    const action = isBlocked ? 'Unlocking' : 'Locking';
+    console.log(`[Neural Protocol] ${action} Node:`, id);
+    try { 
+      const res = await api.put(`/user/${id}/block`); 
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, isBlocked: res.data.isBlocked } : u));
+    } catch (err) {
+      console.error('Lockdown Sync Failure:', err);
+      alert('Neural Override Failed.');
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`CAUTION: Initiating Neural Termination for ${name}. This will purge all associated logs and assets. Proceed?`)) return;
+    try {
+      await api.delete(`/user/${id}`);
+      setUsers(prev => prev.filter(u => u._id !== id));
+      alert('Entity Purged Successfully.');
+    } catch (err) {
+      alert('Termination Failed.');
+    }
+  };
+
+  const handleEditBalance = async (id: string, currentBalance: number) => {
+    const newAmount = prompt(`Neural Override: Input New Balance for Node (₹)`, currentBalance.toString());
+    if (newAmount !== null && !isNaN(parseFloat(newAmount))) {
+      try {
+        const { data } = await api.put(`/user/${id}/balance`, { amount: parseFloat(newAmount) });
+        setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: data.walletBalance } : u));
+      } catch (err) {
+        alert('Neural Injection Failed');
+      }
+    }
+  };
+
+  const handleAddBalance = async (id: string, currentBalance: number) => {
+    const addAmount = prompt(`Neural Injection: Input Amount to ADD to Node (₹)`);
+    if (addAmount !== null && !isNaN(parseFloat(addAmount))) {
+      try {
+        const newTotal = currentBalance + parseFloat(addAmount);
+        const { data } = await api.put(`/user/${id}/balance`, { amount: newTotal });
+        setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: data.walletBalance } : u));
+      } catch (err) {
+        alert('Neural Injection Failed');
+      }
+    }
+  };
+
+  const handleForceResplit = async (id: string, name: string) => {
+    if (!confirm(`Force a Neural Resplit for ${name}? This regroups their wallet into random unified parts.`)) return;
+    try {
+      const res = await api.post(`/user/${id}/resplit`);
+      alert(`Success: ${res.data.message}`);
+    } catch (err) {
+      alert('Neural Resplit Failed.');
+    }
+  };
+
+  const filteredUsers = users.filter(u => 
+    (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+    (u.userIdNumber?.toString().includes(searchQuery) || false)
+  );
+
+  return (
+    <div className="space-y-10">
+      <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-500">Registry</span></h2>
+      <div className="space-y-6">
+        {filteredUsers.map((user, i) => (
+          <div key={user._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl group hover:border-blue-500/30 transition-all">
+             <div className="flex items-center gap-10">
+                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
+                <div>
+                   <h4 className={`text-2xl font-black italic transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
+                    <div className="flex items-center gap-3 mt-2">
+                       <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">ID_{user.userIdNumber}</div>
+                       <div className={`px-4 py-1.5 border rounded-full text-[10px] font-mono uppercase tracking-widest ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                          TYPE: {user.phone?.startsWith('GUEST_') ? 'GUEST' : 'REGISTERED'}
+                       </div>
+                       <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-mono text-indigo-400 uppercase tracking-widest">REF: {user.referralCode || 'N/A'}</div>
+                       <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-mono text-amber-500 uppercase tracking-widest">EARN: ₹{user.referralEarnings || 0}</div>
+                       <div className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-mono text-blue-400 uppercase tracking-widest">UPI: {user.upiId || 'NOT_SET'}</div>
+                       <div className="px-4 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-mono text-red-400 uppercase tracking-widest">PIN: {user.pin || 'NOT_SET'}</div>
+                       {user.referredBy && (
+                         <div className="px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full text-[9px] font-black text-violet-500 uppercase tracking-tighter">LINKED</div>
+                       )}
+                       {user.isBlocked && (
+                         <div className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-[9px] font-black text-red-500 uppercase tracking-tighter animate-pulse">SUSPENDED</div>
+                       )}
+                    </div>
+                </div>
+             </div>
+            <div className="flex items-center gap-12">
+               <div className="flex items-center gap-4">
+                  <div 
+                    className="flex flex-col items-end cursor-pointer group/balance"
+                    onClick={() => handleEditBalance(user._id, user.walletBalance)}
+                  >
+                     <span className="text-[10px] font-black uppercase text-slate-600 group-hover/balance:text-blue-500 transition-colors">Digital Vault</span>
+                     <div className="flex items-center gap-4">
+                        <span className={`text-3xl font-black italic tabular-nums transition-all ${user.isBlocked ? 'text-red-400' : 'text-white'}`}>₹{user.walletBalance.toLocaleString()}</span>
+                        <RefreshCw size={14} className="text-blue-500 opacity-0 group-hover/balance:opacity-100 transition-opacity" />
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => handleAddBalance(user._id, user.walletBalance)}
+                    className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 active:scale-95 transition-all hover:scale-105"
+                    title="Add to Balance"
+                  >
+                    <Plus size={20} />
+                  </button>
+                  <button 
+                    onClick={() => handleForceResplit(user._id, user.name)}
+                    className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-amber-500/20 active:scale-95 transition-all hover:scale-105"
+                    title="Force Wallet Resplit"
+                  >
+                    <Cpu size={20} />
+                  </button>
+               </div>
+               
+               <div className="flex gap-4 border-l border-white/5 pl-12 h-20 items-center">
+                 <button 
+                   onClick={() => handleBlock(user._id, !!user.isBlocked)} 
+                   className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${user.isBlocked ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'}`}
+                   title={user.isBlocked ? "Unblock Entity" : "Lock Entity"}
+                 >
+                   {user.isBlocked ? <ShieldCheck size={24}/> : <XCircle size={24}/>}
+                 </button>
+                  
+                  <button 
+                    onClick={() => handleDelete(user._id, user.name)} 
+                    className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-95"
+                    title="Terminate Entity"
+                  >
+                    <Trash2 size={24}/>
+                  </button>
+                </div>
+             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Asset Manager ---
+function AssetManager({ config, setConfig }: any) {
+  const addPlan = () => {
+    const amount = prompt('Input Neural Asset Amount (₹)');
+    if (amount && !isNaN(parseInt(amount))) {
+      const amtNum = parseInt(amount);
+      const newPlan = { amount: amtNum, code: `SIG${amtNum}`, isDefault: false, isActive: true };
+      const currentPlans = config?.stockPlans || [];
+      setConfig({ ...config, stockPlans: [...currentPlans, newPlan] });
+    }
+  };
+  const setPlanActive = (idx: number, status: boolean, e: any) => {
+    e.stopPropagation();
+    const newPlans = [...(config?.stockPlans || [])]; 
+    if (newPlans[idx]) {
+      newPlans[idx] = { ...newPlans[idx], isActive: status };
+      setConfig({ ...config, stockPlans: newPlans });
+    }
+  };
+  const removePlan = (idx: number, e: any) => {
+    e.stopPropagation();
+    const newPlans = (config?.stockPlans || []).filter((_: any, i: number) => i !== idx);
+    setConfig({ ...config, stockPlans: newPlans });
+  };
+  const initializeSystemStock = async () => {
+    const amountStr = prompt('Input System Stock Initialization Amount (₹) (Must be multiple of 100)');
+    if (amountStr && !isNaN(parseInt(amountStr))) {
+      const amount = parseInt(amountStr);
+      try {
+        await api.post('/stocks', { amount });
+        alert('System Stock Initialized successfully!');
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Failed to initialize stock. Did you set your UPI ID in User App?');
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-12">
+      <div className="flex justify-between items-center">
+         <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Asset <span className="text-blue-500">Commander</span></h2>
+         <div className="flex gap-4">
+           <button onClick={initializeSystemStock} className="px-12 py-5 bg-emerald-600 border border-emerald-500/20 rounded-[32px] text-white font-black text-[11px] uppercase tracking-[0.3em] hover:bg-emerald-500 transition-all font-mono shadow-lg shadow-emerald-500/20">Init Stock</button>
+           <button onClick={addPlan} className="px-12 py-5 bg-white/5 border border-white/10 rounded-[32px] text-white font-black text-[11px] uppercase tracking-[0.3em] hover:bg-white/10 transition-all font-mono">Inject Proposal</button>
+         </div>
+      </div>
+      <div className="grid grid-cols-4 gap-10">
+        {config?.stockPlans?.map((plan: any, i: number) => (
+          <div key={i} className={`group relative p-10 rounded-[56px] border transition-all duration-700 ${plan.isActive ? 'bg-[#030712] border-indigo-600 shadow-indigo-500/10 shadow-2xl' : 'bg-slate-900/40 border-white/5 opacity-40 grayscale'}`}>
+             <button 
+                onClick={(e) => removePlan(i, e)} 
+                className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-red-600/10 text-red-500 flex items-center justify-center border border-red-500/20 hover:bg-red-600 hover:text-white transition-all shadow-lg active:scale-95 z-20"
+             >
+                <Trash2 size={20} />
+             </button>
+             <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center italic font-black text-4xl mb-8 ${plan.isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/30' : 'bg-white/5 text-slate-800'}`}>₹</div>
+             <h4 className={`text-4xl font-black italic tabular-nums mb-8 ${plan.isActive ? 'text-white' : 'text-slate-600'}`}>₹{plan.amount}</h4>
+             <div className="flex gap-4">
+                <button onClick={(e) => setPlanActive(i, true, e)} className={`flex-1 h-14 rounded-2xl flex items-center justify-center transition-all ${plan.isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-400/20' : 'bg-white/5 text-slate-600 hover:bg-blue-500/20'}`}><Check size={24}/></button>
+                <button onClick={(e) => setPlanActive(i, false, e)} className={`flex-1 h-14 rounded-2xl flex items-center justify-center transition-all ${!plan.isActive ? 'bg-red-600 text-white shadow-xl shadow-red-400/20' : 'bg-white/5 text-slate-600 hover:bg-red-500/20'}`}><Minus size={24}/></button>
+             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- TX Monitoring View (Real-time Feed) ---
+function MonitoringView({ searchQuery }: { searchQuery: string }) {
+  const [txs, setTxs] = useState<any[]>([]);
+  const [stockTxs, setStockTxs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showQueue, setShowQueue] = useState(false);
+
+  const fetchTxs = async () => {
+    try {
+      const [txRes, stockRes] = await Promise.all([
+        api.get('/transactions'),
+        api.get('/stocks/list') // For monitoring context if needed, but we need stock transactions
+      ]);
+      setTxs(txRes.data);
+      
+      // Fetch specifically PENDING_REVIEW stock transactions
+      const { data } = await api.get('/transactions'); 
+      // Actually /transactions only returns Transactions. I'll need a new route or filter.
+      // For now, I'll assume /transactions returns the merged history I implemented earlier.
+      setStockTxs(txRes.data.filter((t: any) => t.type === 'ROTATION' && (t.status === 'PENDING_REVIEW' || t.status === 'INIT')));
+    } catch (err) {
+      console.error('Failed to fetch transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTxs();
+  }, []);
+
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      await api.post(`/transactions/${id}/${action}`);
+      fetchTxs();
+    } catch (err) {
+      alert('Action failed');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Neural Purge: Permanent deletion requested. Proceed with identity termination?')) {
+      try {
+        await api.delete(`/transactions/${id}`);
+        fetchTxs();
+      } catch (err) {
+        alert('Neural Purge sequence failed');
+      }
+    }
+  };
+
+  const handleStockAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
+    try {
+       await api.post(`/stocks/transactions/${id}/verify`, { status: action });
+       fetchTxs();
+    } catch (err) {
+       alert('Neural Override Failed');
+    }
+  };
+
+  const filteredTxs = txs.filter(tx => 
+    tx.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx._id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) return <div className="text-center py-20 animate-pulse text-slate-500 font-black uppercase tracking-widest text-[10px]">Synchronizing Ledger...</div>;
+
+  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ? 'http://localhost:5000' : 'https://api.hellopayapp.com';
+
+  return (
+    <div className="space-y-12">
+      <div className="flex justify-between items-center">
+         <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white flex items-center gap-6">Neural <span className="text-indigo-500 italic">Monitoring</span></h2>
+         <div className="flex bg-slate-900/40 p-2 rounded-2xl border border-white/5">
+            <button onClick={() => setShowQueue(false)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!showQueue ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>General Ledger</button>
+            <button onClick={() => setShowQueue(true)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showQueue ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Verification Queue {stockTxs.length > 0 && <span className="ml-2 bg-white text-black px-1.5 rounded-full">{stockTxs.length}</span>}</button>
+         </div>
+      </div>
+
+      {!showQueue ? (
+        <div className="space-y-6">
+          {filteredTxs.map((tx, i) => (
+            <div key={tx._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl relative overflow-hidden group">
+               <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-20" />
+               <div className="flex items-center gap-10">
+                  <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center ${tx.type === 'ROTATION' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                     <ArrowRightLeft size={24} />
+                  </div>
+                  <div className="flex-1">
+                     <div className="flex items-center gap-3">
+                        <h4 className="text-xl font-black text-white italic">{tx.user?.name || 'Anonymous Node'}</h4>
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded-md border border-white/10 text-slate-500">{(tx.type || 'TX').replace('_', ' ')}</span>
+                     </div>
+                     <div className="flex items-center gap-4 mt-2">
+                        <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> {new Date(tx.createdAt).toLocaleString()}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${tx.status === 'PENDING' || tx.status === 'PENDING_REVIEW' ? 'bg-indigo-600/10 text-indigo-500 border border-indigo-500/10' : tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-red-500/10 text-red-500 border border-red-500/10'}`}>{tx.status}</span>
+                     </div>
+                  </div>
+               </div>
+               <div className="flex items-center gap-12 font-black italic text-2xl tabular-nums text-white">
+                  ₹{tx.amount?.toLocaleString()}
+                  <div className="flex gap-4 ml-8 px-8 border-l border-white/5 text-sm h-16 items-center">
+                    {(tx.status === 'PENDING' || tx.status === 'INIT') && (
+                      <>
+                        <button onClick={() => handleAction(tx._id, 'approve')} className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"><Check size={24} /></button>
+                        <button onClick={() => handleAction(tx._id, 'reject')} className="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Minus size={24} /></button>
+                      </>
+                    )}
+                    <button onClick={() => handleDelete(tx._id)} className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><Trash2 size={24}/></button>
+                  </div>
+               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-12">
+           {stockTxs.map((tx) => (
+             <div key={tx._id} className="bg-[#030712] border border-white/5 rounded-[56px] overflow-hidden shadow-2xl flex h-[500px]">
+                <div className="w-[400px] h-full bg-slate-900/50 p-10 flex flex-col items-center justify-center border-r border-white/5 relative group">
+                   {tx.screenshot ? (
+                      <img src={`${backendUrl}${tx.screenshot}`} className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl group-hover:scale-105 transition-all duration-700" alt="Proof" />
+                   ) : (
+                      <div className="text-slate-700 italic font-black uppercase tracking-widest text-sm">No Signal Screenshot</div>
+                   )}
+                   <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-black text-white italic uppercase tracking-[0.2em] shadow-2xl">Signal CAPTURE</div>
+                </div>
+                
+                <div className="flex-1 p-12 flex flex-col relative">
+                   <button onClick={() => handleDelete(tx._id)} className="absolute top-10 right-10 w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-95 z-20"><Trash2 size={24}/></button>
+                   
+                   <div className="flex justify-between items-start mb-10 mr-20">
+                      <div>
+                         <h4 className="text-3xl font-black italic tracking-tighter text-white uppercase mb-4">Neural Rotation Review</h4>
+                         <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">TRANSACTION_ID: {tx._id}</p>
+                      </div>
+                      <div className="text-right">
+                         <div className="text-[10px] font-black italic text-slate-600 mb-2 uppercase tracking-widest">Confidence Index</div>
+                         <div className={`text-4xl font-black italic ${tx.confidenceScore >= 80 ? 'text-emerald-500' : 'text-amber-500'}`}>{tx.confidenceScore || 0}%</div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-10 flex-1">
+                      <div className="bg-white/5 rounded-[40px] p-8 space-y-6">
+                         <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3"><Terminal size={14}/> AI Extracted Signals</h5>
+                         <div className="space-y-4">
+                            <SignalField label="Amount" val={tx.ocrData?.extractedAmount ? `₹${tx.ocrData.extractedAmount}` : 'NULL'} expected={`₹${tx.amount}`} match={tx.ocrData?.extractedAmount === tx.amount} />
+                            <SignalField label="UTR" val={tx.ocrData?.extractedUtr || 'NULL'} expected={tx.utr} match={!!tx.ocrData?.extractedUtr && tx.ocrData?.extractedUtr === tx.utr} />
+                            <SignalField label="Identity" val={tx.ocrData?.extractedReceiver ? 'MATCHED' : 'NOT DETECTED'} />
+                         </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-6">
+                         <div className="bg-indigo-600/5 border border-indigo-500/20 rounded-[40px] p-8 flex-1 flex flex-col justify-center">
+                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-4">Ground Truth Verification</span>
+                            <div className="text-4xl font-black italic text-white mb-2">₹{tx.amount?.toLocaleString()}</div>
+                            <div className="text-[10px] font-mono text-indigo-400">NODE REF: {tx.utr || 'AWAITING_SIGNAL'}</div>
+                         </div>
+                         
+                         <div className="flex gap-6 h-28">
+                            <button onClick={() => handleStockAction(tx._id, 'SUCCESS')} className="flex-1 bg-emerald-600 rounded-[32px] text-white flex items-center justify-center font-black italic uppercase text-sm tracking-widest hover:scale-105 hover:bg-emerald-500 shadow-xl shadow-emerald-500/20 transition-all">APPROVE SIGNAL</button>
+                            <button onClick={() => handleStockAction(tx._id, 'FAILED')} className="flex-1 bg-red-600/10 border border-red-500/20 rounded-[32px] text-red-500 flex items-center justify-center font-black italic uppercase text-sm tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-500/5">PURGE ATTEMPT</button>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           ))}
+           {stockTxs.length === 0 && (
+             <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[56px] text-slate-700 italic font-black uppercase tracking-[0.5em]">No neural verification tasks in buffer</div>
+           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SignalField({ label, val, expected, match }: any) {
+  return (
+    <div className="flex justify-between items-center border-b border-white/5 pb-4">
+       <div className="flex flex-col">
+          <span className="text-[9px] font-black uppercase text-slate-600 mb-1 tracking-widest">{label}</span>
+          <span className={`text-[12px] font-black italic ${match === true ? 'text-emerald-500' : match === false ? 'text-rose-500' : 'text-white'}`}>{val}</span>
+       </div>
+       {expected && (
+          <div className="text-right">
+             <span className="text-[9px] font-black uppercase text-slate-600 mb-1 tracking-widest">Expected</span>
+             <span className="text-[11px] font-mono text-slate-400">{expected}</span>
+          </div>
+       )}
+    </div>
+  );
+}
+// --- Operations Center ---
+function OperationsCenter({ config, setConfig }: any) {
+  if (!config) return null;
+  return (
+    <div className="bg-[#030712] border border-white/5 rounded-[56px] p-20 shadow-2xl relative overflow-hidden">
+       <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white mb-20 leading-tight">System <span className="text-blue-500">Params</span></h2>
+       <div className="grid grid-cols-2 gap-8 mb-20">
+         <div className="p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+            <div className="flex justify-between items-end mb-10">
+               <div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Yield Matrix (%)</span><div className="text-6xl font-black text-white italic tabular-nums">{config.globalCashbackPercent || 0}%</div></div>
+            </div>
+            <input type="range" min="0" max="30" step="1" value={config.globalCashbackPercent || 0} onChange={(e) => setConfig({...config, globalCashbackPercent: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+         </div>
+         <div className="p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+            <div className="flex justify-between items-end mb-10">
+               <div><span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block">Stock Profit (%)</span><div className="text-6xl font-black text-emerald-400 italic tabular-nums">{config.profitPercentage || 4}%</div></div>
+            </div>
+            <input type="range" min="1" max="50" step="1" value={config.profitPercentage || 4} onChange={(e) => setConfig({...config, profitPercentage: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+         </div>
+       </div>
+       <div className="grid grid-cols-4 gap-8">
+          <OpToggle label="Profit" active={config.adminProfitEnabled} onChange={() => setConfig({...config, adminProfitEnabled: !config.adminProfitEnabled})} />
+          <OpToggle label="Sign" active={config.adminExtraEnabled} onChange={() => setConfig({...config, adminExtraEnabled: !config.adminExtraEnabled})} />
+          <OpToggle label="In" active={config.depositEnabled} onChange={() => setConfig({...config, depositEnabled: !config.depositEnabled})} />
+          <OpToggle label="Out" active={config.withdrawalEnabled} onChange={() => setConfig({...config, withdrawalEnabled: !config.withdrawalEnabled})} />
+       </div>
+    </div>
+  );
+}
+
+// Helpers
+function SidebarLink({ icon, label, active, onClick }: any) {
+  return <button onClick={onClick} className={`w-full flex items-center gap-6 px-8 py-5 rounded-[24px] transition-all duration-300 ${active ? 'bg-blue-600 text-white shadow-[0_20px_40px_rgba(37,99,235,0.4)]' : 'text-slate-500 hover:bg-white/5'}`}>{icon} <span className="text-[13px] font-black uppercase tracking-[0.2em] italic transition-colors group-hover:text-white">{label}</span></button>;
+}
+function StatCard({ label, value, icon, color }: any) {
+  const colors: any = { blue: 'border-blue-500/20 bg-blue-500/[0.03] text-blue-400', amber: 'border-amber-500/20 bg-amber-500/[0.03] text-amber-400', emerald: 'border-emerald-500/20 bg-emerald-500/[0.03] text-emerald-400', purple: 'border-purple-500/20 bg-purple-500/[0.03] text-purple-400' };
+  return <div className={`p-10 rounded-[56px] border ${colors[color]} hover:scale-105 transition-all cursor-pointer shadow-2xl`}><div className="flex flex-col gap-10"> <div className="w-16 h-16 rounded-[24px] bg-white/5 flex items-center justify-center border border-white/10 group-hover:rotate-12 transition-transform shadow-inner">{icon}</div> <div className="space-y-1"> <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 leading-none">{label}</p> <h4 className="text-4xl font-black italic text-white leading-none mt-4 tabular-nums">{value}</h4> </div> </div> </div>;
+}
+function LogItem({ type, msg, timestamp }: any) {
+  const col = type === 'success' ? 'text-emerald-500' : 'text-blue-500';
+  return <div className="flex gap-4"><span className="text-[9px] text-slate-700 pt-0.5">[{timestamp}]</span><p className={`text-[10px] font-black ${col} italic tracking-tight`}>{msg}</p></div>;
+}
+function OpToggle({ label, active, onChange }: any) {
+  return <button onClick={onChange} className="flex flex-col items-center justify-center p-10 bg-[#030712] border border-white/5 rounded-[56px] gap-8 hover:border-blue-500/30 transition-all flex-1 shadow-2xl group"> <span className="text-[11px] font-black uppercase text-slate-600 group-hover:text-slate-400 tracking-[0.3em]">{label}</span> <div className={`w-20 h-10 rounded-full p-1.5 transition-all flex ${active ? 'bg-blue-600 justify-end shadow-[0_0_20px_rgba(37,99,235,0.4)]' : 'bg-slate-800 justify-start'}`}><div className="w-7 h-7 bg-white rounded-full shadow-2xl" /></div> </button>;
+}
+
+function StockRegistry({ searchQuery }: { searchQuery: string }) {
+  const [stocks, setStocks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStocks = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/stocks/list');
+      setStocks(data);
+    } catch (err) {
+      console.error('Neural Signal Extraction Failure:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStocks();
+    const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:5000' : 'https://api.hellopayapp.com';
+    const socket = io(socketUrl);
+    socket.on('stock_update', fetchStocks);
+    return () => { socket.disconnect(); };
+  }, []);
+
+  const handleTogglePin = async (id: string) => {
+    try {
+      await api.put(`/stocks/${id}/pin`);
+      setStocks(prev => prev.map(s => s._id === id ? { ...s, isPinned: !s.isPinned } : s));
+    } catch (err) {
+      alert('Neural Pin Sequence Failed');
+    }
+  };
+
+  const handleDeleteStock = async (id: string, name: string) => {
+    if (confirm(`Terminate Neural Node ${name}? This action is irreversible.`)) {
+      try {
+        await api.delete(`/stocks/${id}`);
+        setStocks(prev => prev.filter(s => s._id !== id));
+      } catch (err) {
+        alert('Neural Node Termination Failed');
+      }
+    }
+  };
+
+  const filtered = stocks.filter(s => 
+    s.stockId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.ownerId?.userIdNumber?.toString().includes(searchQuery)
+  ).sort((a,b) => {
+    // If exact match on Stock ID, move to top
+    if (a.stockId.toLowerCase() === searchQuery.toLowerCase()) return -1;
+    if (b.stockId.toLowerCase() === searchQuery.toLowerCase()) return 1;
+    return 0;
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+      <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Stock <span className="text-amber-500">Inventory</span></h2>
+      
+      <div className="grid grid-cols-1 gap-6">
+        {filtered.map((stock) => (
+          <div key={stock._id} className={`bg-slate-900/40 border p-8 rounded-[48px] flex items-center justify-between transition-all ${stock.isPinned ? 'border-amber-500/30' : 'border-white/5'}`}>
+             <div className="flex items-center gap-10">
+                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${stock.isPinned ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-800 text-blue-500'}`}>
+                   {stock.isPinned ? <Star size={32} fill="currentColor" /> : <Database size={32} />}
+                </div>
+                <div>
+                   <h4 className="text-xl font-black italic tracking-tighter text-white uppercase">{stock.stockId}</h4>
+                   <div className="flex items-center gap-3 mt-2">
+                      <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">OWNER: {stock.ownerId?.name} (ID_{stock.ownerId?.userIdNumber})</div>
+                      <div className={`px-4 py-1.5 border rounded-full text-[10px] font-mono uppercase tracking-widest ${
+                        stock.status === 'SOLD' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 
+                        stock.status === 'LOCKED' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 
+                        'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      }`}>
+                         STATUS: {stock.status} {stock.status === 'LOCKED' && `(BY ${stock.selectedBy?.name || 'USER'})`}
+                      </div>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="flex items-center gap-12">
+                <div className="flex flex-col items-end">
+                   <span className="text-[10px] font-black uppercase text-slate-600 mb-1 tracking-widest">Digital Value</span>
+                   <span className={`text-4xl font-black italic tabular-nums ${stock.isPinned ? 'text-amber-500' : 'text-blue-500'}`}>₹{stock.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex gap-4 border-l border-white/5 pl-10 h-20 items-center">
+                  <button 
+                    onClick={() => handleTogglePin(stock._id)}
+                    className={`p-5 rounded-2xl transition-all active:scale-90 ${stock.isPinned ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20' : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'}`}
+                  >
+                    <Pin size={20} className={stock.isPinned ? 'rotate-0' : '-rotate-45'} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteStock(stock._id, stock.stockId)}
+                    className="p-5 bg-slate-800 text-slate-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-95 border border-white/5"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+             </div>
+          </div>
+        ))}
+        {filtered.length === 0 && !loading && (
+          <div className="text-center py-20 text-[10px] font-black uppercase tracking-[0.5em] text-slate-700 italic">No neural stocks detected in matrix</div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function SplitupRegistry({ searchQuery }: { searchQuery: string }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [splitInputs, setSplitInputs] = useState<{ [key: string]: string }>({});
+  
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try { const { data } = await api.get('/users'); setUsers(data); } catch (err) {}
+    };
+    fetchUsers();
+  }, []);
+
+  const handleOverrideSplits = async (id: string, name: string) => {
+    const input = splitInputs[id];
+    if (!input) return alert('Enter split amounts separated by comma.');
+    
+    const splits = input.split(',').map(s => s.trim()).filter(Boolean);
+    if (splits.some(s => isNaN(Number(s)))) return alert('Please enter only numbers separated by comma.');
+
+    if (!confirm(`Are you sure you want to completely override the virtual stocks for ${name} into ${splits.length} parts?`)) return;
+
+    try {
+      const res = await api.post(`/user/${id}/override-splits`, { splits });
+      alert(res.data.message);
+      setSplitInputs(prev => ({ ...prev, [id]: '' }));
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Neural Protocol Breakdown: Split manual override failed.');
+    }
+  };
+
+  const filteredUsers = users.filter(u => 
+    (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+    (u.userIdNumber?.toString().includes(searchQuery) || false)
+  );
+
+  return (
+    <div className="space-y-10">
+      <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Manual <span className="text-emerald-500">Splitup Processor</span></h2>
+      <div className="bg-[#030712] border border-emerald-500/10 p-6 rounded-[32px] text-emerald-400 text-sm font-mono tracking-widest shadow-lg shadow-emerald-500/5">
+         INFO: Enter target numeric denominations separated by commas (e.g. 500,500,200). The total sum must not exceed the node's tradable balance.
+      </div>
+      <div className="space-y-6">
+        {filteredUsers.map((user) => (
+          <div key={user._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl group hover:border-emerald-500/30 transition-all">
+             <div className="flex items-center gap-10">
+                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{user.name ? user.name[0] : '?'}</div>
+                <div>
+                   <h4 className={`text-2xl font-black italic transition-all ${user.isBlocked ? 'text-red-500' : 'text-white'}`}>{user.name}</h4>
+                    <div className="flex items-center gap-3 mt-2">
+                       <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">ID_{user.userIdNumber}</div>
+                       <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-mono text-amber-500 uppercase tracking-widest">BALANCE: ₹{user.walletBalance.toLocaleString()}</div>
+                    </div>
+                </div>
+             </div>
+            <div className="flex items-center gap-6">
+               <input 
+                  type="text" 
+                  placeholder="e.g. 500, 500, 1000"
+                  value={splitInputs[user._id] || ''}
+                  onChange={(e) => setSplitInputs({ ...splitInputs, [user._id]: e.target.value })}
+                  className="w-56 py-3 px-6 bg-slate-900 border border-white/10 rounded-2xl text-sm focus:outline-none focus:border-emerald-500/40 text-emerald-400 font-mono transition-all"
+               />
+               <button 
+                 onClick={() => handleOverrideSplits(user._id, user.name)}
+                 className="px-8 py-3 h-[46px] bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-500 text-xs font-black uppercase tracking-widest border border-emerald-500/20"
+               >
+                 Execute Split
+               </button>
+             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
