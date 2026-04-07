@@ -40,7 +40,13 @@ import { io } from 'socket.io-client';
 const api = axios.create({
   baseURL: typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:5000/api/admin'
-    : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin` : 'https://api.hellopayapp.com/api/admin'),
+    : (process.env.NEXT_PUBLIC_API_URL 
+        ? (process.env.NEXT_PUBLIC_API_URL.endsWith('/api/admin') 
+           ? process.env.NEXT_PUBLIC_API_URL 
+           : (process.env.NEXT_PUBLIC_API_URL.endsWith('/api') 
+              ? `${process.env.NEXT_PUBLIC_API_URL}/admin` 
+              : `${process.env.NEXT_PUBLIC_API_URL}/api/admin`))
+        : 'https://api.hellopayapp.com/api/admin'),
 });
 
 export default function AdminDashboard() {
@@ -81,8 +87,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData();
     const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000')
-      : 'https://api.hellopayapp.com';
+      ? 'http://localhost:5000'
+      : (process.env.NEXT_PUBLIC_API_URL || 'https://api.hellopayapp.com');
     const socket = io(socketUrl);
 
     socket.on('userStatusChanged', (data) => {
