@@ -92,8 +92,18 @@ export default function AdminDashboard() {
     const socket = io(socketUrl);
 
     socket.on('userStatusChanged', (data) => {
-      console.log('[NEURAL] Identity Link Established:', data);
-      fetchData(); // Global re-sync on any user change/new user
+      console.log('[NEURAL] Signal Received: Identity Status Update', data);
+      fetchData(); 
+    });
+
+    socket.on('userDeleted', (data) => {
+      console.log('[NEURAL] Signal Received: Entity Terminated', data);
+      fetchData();
+    });
+
+    socket.on('configUpdated', () => {
+      console.log('[NEURAL] Signal Received: Global Parameters Updated');
+      fetchData();
     });
 
     return () => { socket.disconnect(); };
@@ -128,7 +138,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-blue-500/30 overflow-hidden flex">
       {/* Sidebar */}
-      <aside className=\"hidden lg:flex w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
+      <aside className="hidden lg:flex w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
            <div className="flex items-center gap-4 mb-20 px-8">
               <div className="w-14 h-14 bg-blue-600 rounded-[20px] shadow-[0_20px_40px_rgba(37,99,235,0.4)] flex items-center justify-center">
                  <Zap size={28} className="text-white fill-white" />
