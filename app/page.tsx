@@ -128,7 +128,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-blue-500/30 overflow-hidden flex">
       {/* Sidebar */}
-      <aside className="w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
+      <aside className=\"hidden lg:flex w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
            <div className="flex items-center gap-4 mb-20 px-8">
               <div className="w-14 h-14 bg-blue-600 rounded-[20px] shadow-[0_20px_40px_rgba(37,99,235,0.4)] flex items-center justify-center">
                  <Zap size={28} className="text-white fill-white" />
@@ -150,17 +150,17 @@ export default function AdminDashboard() {
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 ml-80 p-12 overflow-y-auto max-h-screen custom-scrollbar relative">
+      {/* Main Content - No margin on mobile, ml-80 on lg */}
+      <main className="flex-1 lg:ml-80 p-6 lg:p-12 overflow-y-auto max-h-screen custom-scrollbar relative overflow-x-hidden">
         <div className="flex justify-between items-center mb-16 relative z-10">
-          <div className="relative w-96">
+          <div className="relative w-full lg:w-96">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
             <input 
               type="text" 
               placeholder="Query Node..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-5 pl-16 pr-8 bg-slate-900/40 border border-white/5 rounded-[32px] text-sm focus:outline-none focus:border-blue-500/40 transition-all font-medium" 
+              className="w-full py-4 lg:py-5 pl-16 pr-8 bg-slate-900/40 border border-white/5 rounded-[32px] text-sm focus:outline-none focus:border-blue-500/40 transition-all font-medium" 
             />
           </div>
 
@@ -210,15 +210,15 @@ function DashboardView({ stats }: any) {
   const chartData = stats?.dailyStats || [{ name: '00:00', val: 400 }, { name: '12:00', val: 900 }, { name: '23:59', val: 950 }];
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-12 pb-20">
-      <div className="grid grid-cols-4 gap-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10">
         <StatCard label="Live Entities" value={stats?.totalUsers || '0'} icon={<Users size={24}/>} color="blue" />
         <StatCard label="Network Flow" value={`₹${stats?.totalTransferred?.toLocaleString() || '0'}`} icon={<CreditCard size={24}/>} color="amber" />
         <StatCard label="Neural Profit" value={`₹${stats?.totalAdminProfit?.toLocaleString() || '0'}`} icon={<Zap size={24}/>} color="emerald" />
         <StatCard label="Released Yield" value={`₹${stats?.totalCashbackGiven?.toLocaleString() || '0'}`} icon={<Plus size={24}/>} color="purple" />
       </div>
-      <div className="grid grid-cols-3 gap-12">
-        <div className="col-span-2 bg-[#030712] border border-white/5 rounded-[56px] p-12 h-[500px]">
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-12">Throughput Matrix</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:grid-cols-3 gap-12">
+        <div className="lg:col-span-2 bg-[#030712] border border-white/5 rounded-[40px] lg:rounded-[56px] p-6 lg:p-12 h-[400px] lg:h-[500px]">
+          <h3 className="text-xl lg:text-2xl font-black italic uppercase tracking-tighter mb-8 lg:mb-12">Throughput</h3>
           <ResponsiveContainer width="100%" height="80%">
              <AreaChart data={chartData}><Area type="monotone" dataKey="val" stroke="#3b82f6" fill="#1e3a8a22" strokeWidth={5} /></AreaChart>
           </ResponsiveContainer>
@@ -312,8 +312,8 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
       <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-500">Registry</span></h2>
       <div className="space-y-6">
         {filteredUsers.map((user, i) => (
-          <div key={user._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl group hover:border-blue-500/30 transition-all">
-             <div className="flex items-center gap-10">
+          <div key={user._id} className="bg-slate-900/40 border border-white/5 p-6 lg:p-10 rounded-[32px] lg:rounded-[56px] flex flex-col lg:flex-row items-start lg:items-center justify-between shadow-2xl group hover:border-blue-500/30 transition-all gap-8">
+             <div className="flex items-center gap-6 lg:gap-10">
                 <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
                 <div>
                    <h4 className={`text-2xl font-black italic transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
@@ -335,7 +335,7 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
                     </div>
                 </div>
              </div>
-            <div className="flex items-center gap-12">
+             <div className="flex flex-wrap lg:flex-nowrap items-center gap-8 lg:gap-12 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-white/5 pt-8 lg:pt-0 lg:pl-12">
                <div className="flex items-center gap-4">
                   <div 
                     className="flex flex-col items-end cursor-pointer group/balance"
