@@ -349,35 +349,35 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
                   </div>
                   <button 
                     onClick={() => handleAddBalance(user._id, user.walletBalance)}
-                    className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 active:scale-95 transition-all hover:scale-105"
+                    className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 active:scale-75 hover:scale-110 transition-all z-20 relative"
                     title="Add to Balance"
                   >
-                    <Plus size={20} />
+                    <Plus size={20} className="pointer-events-none" />
                   </button>
                   <button 
                     onClick={() => handleForceResplit(user._id, user.name)}
-                    className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-amber-500/20 active:scale-95 transition-all hover:scale-105"
+                    className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-amber-500/20 active:scale-75 hover:scale-110 transition-all z-20 relative"
                     title="Force Wallet Resplit"
                   >
-                    <Cpu size={20} />
+                    <Cpu size={20} className="pointer-events-none" />
                   </button>
                </div>
                
                <div className="flex gap-4 border-l border-white/5 pl-12 h-20 items-center">
                  <button 
                    onClick={() => handleBlock(user._id, !!user.isBlocked)} 
-                   className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${user.isBlocked ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'}`}
+                   className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all z-20 relative ${user.isBlocked ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 active:scale-75' : 'bg-red-500/10 text-red-500 hover:bg-red-500 active:scale-75'}`}
                    title={user.isBlocked ? "Unblock Entity" : "Lock Entity"}
                  >
-                   {user.isBlocked ? <ShieldCheck size={24}/> : <XCircle size={24}/>}
+                   {user.isBlocked ? <ShieldCheck size={24} className="pointer-events-none"/> : <XCircle size={24} className="pointer-events-none"/>}
                  </button>
                   
                   <button 
                     onClick={() => handleDelete(user._id, user.name)} 
-                    className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-95"
+                    className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-75 z-20 relative"
                     title="Terminate Entity"
                   >
-                    <Trash2 size={24}/>
+                    <Trash2 size={24} className="pointer-events-none" />
                   </button>
                 </div>
              </div>
