@@ -350,11 +350,35 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
                        {user.referredBy && (
                          <div className="px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full text-[9px] font-black text-violet-500 uppercase tracking-tighter">LINKED</div>
                        )}
-                       {user.isBlocked && (
-                         <div className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-[9px] font-black text-red-500 uppercase tracking-tighter animate-pulse">SUSPENDED</div>
-                       )}
-                    </div>
-                </div>
+                        {user.isBlocked && (
+                          <div className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-[9px] font-black text-red-500 uppercase tracking-tighter animate-pulse">SUSPENDED</div>
+                        )}
+                     </div>
+                     <div className="flex items-center gap-3 mt-3">
+                        <div 
+                          onClick={() => {
+                            const val = prompt(`Update Referral % for ${user.name}:`, user.referralPercent || 4);
+                            if (val && !isNaN(parseFloat(val))) {
+                              api.put(`/users/${user._id}/percents`, { referralPercent: parseFloat(val) }).then(() => setUsers(prev => prev.map(u => u._id === user._id ? { ...u, referralPercent: parseFloat(val) } : u)));
+                            }
+                          }}
+                          className="px-3 py-1 bg-violet-600/10 border border-violet-500/20 rounded-lg text-[10px] font-black text-violet-400 uppercase tracking-widest cursor-pointer hover:bg-violet-600 hover:text-white transition-all"
+                        >
+                           REF: {user.referralPercent || 4}%
+                        </div>
+                        <div 
+                          onClick={() => {
+                            const val = prompt(`Update Profit % for ${user.name}:`, user.profitPercent || 8);
+                            if (val && !isNaN(parseFloat(val))) {
+                              api.put(`/users/${user._id}/percents`, { profitPercent: parseFloat(val) }).then(() => setUsers(prev => prev.map(u => u._id === user._id ? { ...u, profitPercent: parseFloat(val) } : u)));
+                            }
+                          }}
+                          className="px-3 py-1 bg-emerald-600/10 border border-emerald-500/20 rounded-lg text-[10px] font-black text-emerald-400 uppercase tracking-widest cursor-pointer hover:bg-emerald-600 hover:text-white transition-all"
+                        >
+                           PROFIT: {user.profitPercent || 8}%
+                        </div>
+                     </div>
+                 </div>
              </div>
              <div className="flex flex-wrap lg:flex-nowrap items-center gap-8 lg:gap-12 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-white/5 pt-8 lg:pt-0 lg:pl-12">
                <div className="flex items-center gap-4">

@@ -6,13 +6,13 @@ import { useEffect } from "react";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAbBFUwrKwWwsYc15JtRRueXyatgU4FNyQ",
-  authDomain: "hello-bd522.firebaseapp.com",
-  projectId: "hello-bd522",
-  storageBucket: "hello-bd522.firebasestorage.app",
-  messagingSenderId: "565556529902",
-  appId: "1:565556529902:web:3dea869562194d9c8b81ff",
-  measurementId: "G-FLY1E6GDDJ"
+  apiKey: "AIzaSyBcvsJSZT6ANUPOPDmTdJeB5vok0UPMF4I",
+  authDomain: "hellopay-2d4bf.firebaseapp.com",
+  projectId: "hellopay-2d4bf",
+  storageBucket: "hellopay-2d4bf.firebasestorage.app",
+  messagingSenderId: "626478143485",
+  appId: "1:626478143485:web:b1b1282c52c57487a72b94",
+  measurementId: "G-MJN7ZW9TM2"
 };
 
 export default function FirebaseManager() {
