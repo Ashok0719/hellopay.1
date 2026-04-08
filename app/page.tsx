@@ -255,25 +255,31 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
     fetchUsers();
   }, []);
   const handleBlock = async (id: string, isBlocked: boolean) => {
-    const action = isBlocked ? 'Unlocking' : 'Locking';
-    console.log(`[Neural Protocol] ${action} Node:`, id);
+    // Neural Flash Update: Flip status instantly
+    setUsers(prev => prev.map(u => u._id === id ? { ...u, isBlocked: !isBlocked } : u));
+    
     try { 
-      const res = await api.put(`/user/${id}/block`); 
-      setUsers(prev => prev.map(u => u._id === id ? { ...u, isBlocked: res.data.isBlocked } : u));
+      await api.put(`/user/${id}/block`); 
     } catch (err) {
-      console.error('Lockdown Sync Failure:', err);
-      alert('Neural Override Failed.');
+      console.error('[NEURAL] Sync Error - Rolling back lockdown');
+      // Revert if API fails
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, isBlocked: isBlocked } : u));
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`CAUTION: Initiating Neural Termination for ${name}. This will purge all associated logs and assets. Proceed?`)) return;
+    if (!confirm(`CAUTION: Initiating Neural Termination for ${name}. Proceed?`)) return;
+    
+    // Neural Flash Update: Purge from vision instantly
+    const backup = [...users];
+    setUsers(prev => prev.filter(u => u._id !== id));
+    
     try {
       await api.delete(`/user/${id}`);
-      setUsers(prev => prev.filter(u => u._id !== id));
-      alert('Entity Purged Successfully.');
     } catch (err) {
-      alert('Termination Failed.');
+      console.error('[NEURAL] Purge Blocked - Restoring Entity');
+      setUsers(backup);
+      alert('Termination Failed. Check Node connectivity.');
     }
   };
 
@@ -292,11 +298,16 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
   const handleAddBalance = async (id: string, currentBalance: number) => {
     const addAmount = prompt(`Neural Injection: Input Amount to ADD to Node (₹)`);
     if (addAmount !== null && !isNaN(parseFloat(addAmount))) {
+      const addVal = parseFloat(addAmount);
+      
+      // Neural Flash Update: Credit balance instantly
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: u.walletBalance + addVal } : u));
+
       try {
-        const newTotal = currentBalance + parseFloat(addAmount);
-        const { data } = await api.put(`/user/${id}/balance`, { amount: newTotal });
-        setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: data.walletBalance } : u));
+        await api.put(`/user/${id}/balance`, { amount: currentBalance + addVal });
       } catch (err) {
+        console.error('[NEURAL] Credit Injection Failed - Reverting Flow');
+        setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: u.walletBalance - addVal } : u));
         alert('Neural Injection Failed');
       }
     }
