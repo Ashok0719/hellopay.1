@@ -6,12 +6,12 @@ import { useEffect } from "react";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBcvsJSZT6ANUPOPDmTdJeB5vok0UPMF4I",
-  authDomain: "hellopay-2d4bf.firebaseapp.com",
-  projectId: "hellopay-2d4bf",
-  storageBucket: "hellopay-2d4bf.firebasestorage.app",
-  messagingSenderId: "626478143485",
-  appId: "1:626478143485:web:b1b1282c52c57487a72b94",
+  apiKey: "AIzaSyAiPfeohL4ikZ1bZY7mk7G4dON6fSN_qu4",
+  authDomain: "hellopay-89da2.firebaseapp.com",
+  projectId: "hellopay-89da2",
+  storageBucket: "hellopay-89da2.firebasestorage.app",
+  messagingSenderId: "640617233547",
+  appId: "1:640617233547:web:0e245ad4b495b6722d688e",
   measurementId: "G-MJN7ZW9TM2"
 };
 
