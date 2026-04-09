@@ -699,19 +699,26 @@ function OperationsCenter({ config, setConfig }: any) {
   return (
     <div className="bg-[#030712] border border-white/5 rounded-[56px] p-20 shadow-2xl relative overflow-hidden">
        <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white mb-20 leading-tight">System <span className="text-blue-500">Params</span></h2>
-       <div className="grid grid-cols-2 gap-8 mb-20">
-         <div className="p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+       <div className="grid grid-cols-3 gap-8 mb-20">
+         <div className="p-10 lg:p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
             <div className="flex justify-between items-end mb-10">
-               <div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Yield Matrix (%)</span><div className="text-6xl font-black text-white italic tabular-nums">{config.globalCashbackPercent || 0}%</div></div>
+               <div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Yield Matrix (%)</span><div className="text-4xl lg:text-5xl font-black text-white italic tabular-nums">{config.globalCashbackPercent || 0}%</div></div>
             </div>
             <input type="range" min="0" max="30" step="1" value={config.globalCashbackPercent || 0} onChange={(e) => setConfig({...config, globalCashbackPercent: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
          </div>
-         <div className="p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+         <div className="p-10 lg:p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
             <div className="flex justify-between items-end mb-10">
-               <div><span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block">Stock Profit (%)</span><div className="text-6xl font-black text-emerald-400 italic tabular-nums">{config.profitPercentage || 4}%</div></div>
+               <div><span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block">Stock Profit (%)</span><div className="text-4xl lg:text-5xl font-black text-emerald-400 italic tabular-nums">{config.profitPercentage || 0}%</div></div>
             </div>
-            <input type="range" min="1" max="50" step="1" value={config.profitPercentage || 4} onChange={(e) => setConfig({...config, profitPercentage: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            <input type="range" min="1" max="50" step="1" value={config.profitPercentage || 0} onChange={(e) => setConfig({...config, profitPercentage: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
          </div>
+         <div className="p-10 lg:p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+            <div className="flex justify-between items-end mb-10">
+               <div><span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest block">Ref Comm (%)</span><div className="text-4xl lg:text-5xl font-black text-indigo-400 italic tabular-nums">{config.referralCommissionPercent || 0}%</div></div>
+            </div>
+            <input type="range" min="0" max="25" step="1" value={config.referralCommissionPercent || 0} onChange={(e) => setConfig({...config, referralCommissionPercent: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+         </div>
+       </div>         </div>
        </div>
        <div className="grid grid-cols-4 gap-8">
           <OpToggle label="Profit" active={config.adminProfitEnabled} onChange={() => setConfig({...config, adminProfitEnabled: !config.adminProfitEnabled})} />
