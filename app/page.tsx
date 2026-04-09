@@ -692,6 +692,22 @@ function OperationsCenter({ config, setConfig }: any) {
             <input type="range" min="0" max="25" step="1" value={config.referralCommissionPercent || 0} onChange={(e) => setConfig({...config, referralCommissionPercent: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
          </div>
        </div>
+
+       {/* New Row for Bonus Controls */}
+       <div className="grid grid-cols-2 gap-8 mb-20">
+          <div className="p-10 lg:p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+             <div className="flex justify-between items-end mb-10">
+                <div><span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest block">Welcome Bonus (₹)</span><div className="text-4xl lg:text-5xl font-black text-yellow-500 italic tabular-nums">₹{config.referralBonus || 100}</div></div>
+             </div>
+             <input type="range" min="0" max="1000" step="10" value={config.referralBonus || 100} onChange={(e) => setConfig({...config, referralBonus: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-yellow-500" />
+          </div>
+          <div className="p-10 lg:p-12 bg-black/40 border border-white/5 rounded-[56px] shadow-inner">
+             <div className="flex justify-between items-end mb-10 text-right">
+                <div className="w-full"><span className="text-[10px] font-black text-blue-500 uppercase tracking-widest block">Min Deposit to Unlock Bonus</span><div className="text-4xl lg:text-5xl font-black text-blue-400 italic tabular-nums">₹{config.minDeposit || 100}</div></div>
+             </div>
+             <input type="range" min="0" max="500" step="10" value={config.minDeposit || 100} onChange={(e) => setConfig({...config, minDeposit: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+       </div>
        <div className="grid grid-cols-4 gap-8">
           <OpToggle label="Profit" active={config.adminProfitEnabled} onChange={() => setConfig({...config, adminProfitEnabled: !config.adminProfitEnabled})} />
           <OpToggle label="Sign" active={config.adminExtraEnabled} onChange={() => setConfig({...config, adminExtraEnabled: !config.adminExtraEnabled})} />
