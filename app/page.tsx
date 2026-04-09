@@ -328,102 +328,74 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
     (u.userIdNumber?.toString().includes(searchQuery) || false)
   );
 
+  const Badge = ({ label, val, color }: any) => {
+    const colors: any = { indigo: 'bg-indigo-500/10 text-indigo-400', amber: 'bg-amber-500/10 text-amber-500', blue: 'bg-blue-500/10 text-blue-400', emerald: 'bg-emerald-500/10 text-emerald-400', red: 'bg-red-500/10 text-red-400', slate: 'bg-white/5 text-slate-500' };
+    return <div className={`px-4 py-2 rounded-xl flex flex-col border border-white/5 ${colors[color] || colors.slate}`}>
+      <span className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-0.5">{label}</span>
+      <span className="text-[11px] font-black tabular-nums truncate">{val}</span>
+    </div>;
+  };
+
+  const ActionBtn = ({ icon, color, onClick, title }: any) => {
+    const colors: any = { blue: 'bg-blue-600 shadow-blue-500/20', amber: 'bg-orange-500 shadow-orange-500/20', emerald: 'bg-emerald-500 shadow-emerald-500/20', red: 'bg-rose-600 shadow-rose-500/20', slate: 'bg-slate-800 text-slate-400' };
+    return <button onClick={onClick} title={title} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white transition-all active:scale-75 hover:scale-110 shadow-xl ${colors[color] || colors.slate}`}>{icon}</button>;
+  };
+
   return (
-    <div className="space-y-10">
-      <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-500">Registry</span></h2>
+    <div className="space-y-12">
+      <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-600 italic">Registry</span></h2>
       <div className="space-y-6">
-        {filteredUsers.map((user, i) => (
-          <div key={user._id} className="bg-slate-900/40 border border-white/5 p-6 lg:p-10 rounded-[32px] lg:rounded-[56px] flex flex-col lg:flex-row items-start lg:items-center justify-between shadow-2xl group hover:border-blue-500/30 transition-all gap-8">
-             <div className="flex items-center gap-6 lg:gap-10">
-                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
+        {filteredUsers.map((user) => (
+          <div key={user._id} className="bg-[#030712] border border-white/5 p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group hover:border-blue-500/20 transition-all gap-8 relative overflow-hidden">
+             
+             {/* Profile Zone */}
+             <div className="flex items-center gap-8 min-w-[320px]">
+                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase shadow-inner ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
                 <div>
-                   <h4 className={`text-2xl font-black italic transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
-                    <div className="flex items-center gap-3 mt-2">
-                       <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">ID_{user.userIdNumber}</div>
-                       <div className={`px-4 py-1.5 border rounded-full text-[10px] font-mono uppercase tracking-widest ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                          TYPE: {user.phone?.startsWith('GUEST_') ? 'GUEST' : 'REGISTERED'}
-                       </div>
-                       <div className="px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-mono text-indigo-400 uppercase tracking-widest">REF: {user.referralCode || 'N/A'}</div>
-                       <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-mono text-amber-500 uppercase tracking-widest">EARN: ₹{user.referralEarnings || 0}</div>
-                       <div className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-mono text-blue-400 uppercase tracking-widest">UPI: {user.upiId || 'NOT_SET'}</div>
-                       <div className="px-4 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-mono text-red-400 uppercase tracking-widest">PIN: {user.pin || 'NOT_SET'}</div>
-                       {user.referredBy && (
-                         <div className="px-3 py-1 bg-violet-500/20 border border-violet-500/30 rounded-full text-[9px] font-black text-violet-500 uppercase tracking-tighter">LINKED</div>
-                       )}
-                        {user.isBlocked && (
-                          <div className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-[9px] font-black text-red-500 uppercase tracking-tighter animate-pulse">SUSPENDED</div>
-                        )}
-                     </div>
-                     <div className="flex items-center gap-3 mt-3">
-                        <div 
-                          onClick={() => {
-                            const val = prompt(`Update Referral % for ${user.name}:`, user.referralPercent || 4);
-                            if (val && !isNaN(parseFloat(val))) {
-                              api.put(`/users/${user._id}/percents`, { referralPercent: parseFloat(val) }).then(() => setUsers(prev => prev.map(u => u._id === user._id ? { ...u, referralPercent: parseFloat(val) } : u)));
-                            }
-                          }}
-                          className="px-3 py-1 bg-violet-600/10 border border-violet-500/20 rounded-lg text-[10px] font-black text-violet-400 uppercase tracking-widest cursor-pointer hover:bg-violet-600 hover:text-white transition-all"
-                        >
-                           REF: {user.referralPercent || 4}%
-                        </div>
-                        <div 
-                          onClick={() => {
-                            const val = prompt(`Update Profit % for ${user.name}:`, user.profitPercent || 8);
-                            if (val && !isNaN(parseFloat(val))) {
-                              api.put(`/users/${user._id}/percents`, { profitPercent: parseFloat(val) }).then(() => setUsers(prev => prev.map(u => u._id === user._id ? { ...u, profitPercent: parseFloat(val) } : u)));
-                            }
-                          }}
-                          className="px-3 py-1 bg-emerald-600/10 border border-emerald-500/20 rounded-lg text-[10px] font-black text-emerald-400 uppercase tracking-widest cursor-pointer hover:bg-emerald-600 hover:text-white transition-all"
-                        >
-                           PROFIT: {user.profitPercent || 8}%
-                        </div>
-                     </div>
-                 </div>
+                   <h4 className={`text-2xl font-black italic tracking-tighter transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
+                   <div className="flex items-center gap-3 mt-2">
+                      <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono text-slate-600 uppercase tracking-widest">ID_{user.userIdNumber}</div>
+                      <div className={`px-3 py-1 border rounded-lg text-[10px] font-mono uppercase tracking-widest ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                         {user.phone?.startsWith('GUEST_') ? 'GUEST' : 'REGISTERED'}
+                      </div>
+                   </div>
+                </div>
              </div>
-             <div className="flex flex-wrap lg:flex-nowrap items-center gap-8 lg:gap-12 w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-white/5 pt-8 lg:pt-0 lg:pl-12">
-               <div className="flex items-center gap-4">
-                  <div 
-                    className="flex flex-col items-end cursor-pointer group/balance"
-                    onClick={() => handleEditBalance(user._id, user.walletBalance)}
-                  >
-                     <span className="text-[10px] font-black uppercase text-slate-600 group-hover/balance:text-blue-500 transition-colors">Digital Vault</span>
-                     <div className="flex items-center gap-4">
-                        <span className={`text-3xl font-black italic tabular-nums transition-all ${user.isBlocked ? 'text-red-400' : 'text-white'}`}>₹{user.walletBalance.toLocaleString()}</span>
-                        <RefreshCw size={14} className="text-blue-500 opacity-0 group-hover/balance:opacity-100 transition-opacity" />
-                     </div>
-                  </div>
-                  <button 
-                    onClick={() => handleAddBalance(user._id, user.walletBalance)}
-                    className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-500/20 active:scale-75 hover:scale-110 transition-all z-20 relative"
-                    title="Add to Balance"
-                  >
-                    <Plus size={20} className="pointer-events-none" />
-                  </button>
-                  <button 
-                    onClick={() => handleForceResplit(user._id, user.name)}
-                    className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-amber-500/20 active:scale-75 hover:scale-110 transition-all z-20 relative"
-                    title="Force Wallet Resplit"
-                  >
-                    <Cpu size={20} className="pointer-events-none" />
-                  </button>
-               </div>
-               
-               <div className="flex gap-4 border-l border-white/5 pl-12 h-20 items-center">
-                 <button 
-                   onClick={() => handleBlock(user._id, !!user.isBlocked)} 
-                   className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all z-20 relative ${user.isBlocked ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 active:scale-75' : 'bg-red-500/10 text-red-500 hover:bg-red-500 active:scale-75'}`}
-                   title={user.isBlocked ? "Unblock Entity" : "Lock Entity"}
-                 >
-                   {user.isBlocked ? <ShieldCheck size={24} className="pointer-events-none"/> : <XCircle size={24} className="pointer-events-none"/>}
-                 </button>
-                  
-                  <button 
-                    onClick={() => handleDelete(user._id, user.name)} 
-                    className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-75 z-20 relative"
-                    title="Terminate Entity"
-                  >
-                    <Trash2 size={24} className="pointer-events-none" />
-                  </button>
+
+             {/* Meta Zone */}
+             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                <Badge label="REF CODE" val={user.referralCode || 'N/A'} color="indigo" />
+                <Badge label="EARNINGS" val={`₹${user.referralEarnings || 0}`} color="amber" />
+                <Badge label="UPI VPA" val={user.upiId || 'NOT_SET'} color="blue" />
+                <Badge label="SECURITY" val={user.pin ? 'BINDED' : 'NOT_SET'} color={user.pin ? 'emerald' : 'red'} />
+             </div>
+
+             {/* Performance Zone */}
+             <div className="flex items-center gap-4 bg-white/[0.02] p-4 rounded-3xl border border-white/5">
+                <div onClick={() => {
+                   const val = prompt(`Referral % for ${user.name}:`, user.referralPercent || 4);
+                   if (val && !isNaN(parseFloat(val))) api.put(`/users/${user._id}/percents`, { referralPercent: parseFloat(val) }).then(fetchUsers);
+                }} className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-black text-indigo-400 uppercase cursor-pointer hover:bg-indigo-600 hover:text-white transition-all">REF: {user.referralPercent || 4}%</div>
+                <div onClick={() => {
+                   const val = prompt(`Profit % for ${user.name}:`, user.profitPercent || 8);
+                   if (val && !isNaN(parseFloat(val))) api.put(`/users/${user._id}/percents`, { profitPercent: parseFloat(val) }).then(fetchUsers);
+                }} className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-black text-emerald-400 uppercase cursor-pointer hover:bg-emerald-600 hover:text-white transition-all">PROF: {user.profitPercent || 8}%</div>
+             </div>
+
+             {/* Action Zone - Fixed Alignment */}
+             <div className="flex items-center gap-8 pl-8 border-l border-white/5 h-20">
+                <div className="flex flex-col items-end min-w-[120px] cursor-pointer group/vault" onClick={() => handleEditBalance(user._id, user.walletBalance)}>
+                   <span className="text-[9px] font-black uppercase text-slate-600 tracking-[0.3em] mb-1">Digital Vault</span>
+                   <div className="flex items-center gap-3">
+                      <span className={`text-4xl font-black italic tabular-nums ${user.isBlocked ? 'text-red-400' : 'text-white'}`}>₹{user.walletBalance.toLocaleString()}</span>
+                   </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                   <ActionBtn icon={<Plus size={20}/>} color="blue" title="Add Credits" onClick={() => handleAddBalance(user._id, user.walletBalance)} />
+                   <ActionBtn icon={<Cpu size={20}/>} color="amber" title="Neural Resplit" onClick={() => handleForceResplit(user._id, user.name)} />
+                   <ActionBtn icon={user.isBlocked ? <ShieldCheck size={24}/> : <XCircle size={24}/>} color={user.isBlocked ? 'emerald' : 'red'} title="Lock/Unlock" onClick={() => handleBlock(user._id, !!user.isBlocked)} />
+                   <button onClick={() => handleDelete(user._id, user.name)} className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center outline-none border border-white/5"><Trash2 size={20}/></button>
                 </div>
              </div>
           </div>
@@ -432,6 +404,7 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
     </div>
   );
 }
+
 
 // --- Asset Manager ---
 function AssetManager({ config, setConfig }: any) {
@@ -718,7 +691,6 @@ function OperationsCenter({ config, setConfig }: any) {
             </div>
             <input type="range" min="0" max="25" step="1" value={config.referralCommissionPercent || 0} onChange={(e) => setConfig({...config, referralCommissionPercent: parseInt(e.target.value)})} className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
          </div>
-       </div>         </div>
        </div>
        <div className="grid grid-cols-4 gap-8">
           <OpToggle label="Profit" active={config.adminProfitEnabled} onChange={() => setConfig({...config, adminProfitEnabled: !config.adminProfitEnabled})} />
