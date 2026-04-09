@@ -88,7 +88,7 @@ export default function AdminDashboard() {
     fetchData();
     const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:5000'
-      : (process.env.NEXT_PUBLIC_API_URL || 'https://api.hellopayapp.com');
+      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api.hellopayapp.com');
     const socket = io(socketUrl);
 
     socket.on('userStatusChanged', (data) => {
@@ -343,7 +343,7 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
 
   return (
     <div className="space-y-12">
-      <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-600 italic">Registry</span></h2>
+      <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-600 italic">Registry</span> <span className="text-sm font-mono text-slate-500 opacity-50 ml-4 font-normal not-italic tracking-widest">({users.length} NODES)</span></h2>
       <div className="space-y-6">
         {filteredUsers.map((user) => (
           <div key={user._id} className="bg-[#030712] border border-white/5 p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group hover:border-blue-500/20 transition-all gap-8 relative overflow-hidden">
