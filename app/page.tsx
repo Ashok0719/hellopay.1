@@ -289,8 +289,8 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
       try {
         const { data } = await api.put(`/user/${id}/balance`, { amount: parseFloat(newAmount) });
         setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: data.walletBalance } : u));
-      } catch (err) {
-        alert('Neural Injection Failed');
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Neural Injection Failed');
       }
     }
   };
@@ -305,10 +305,10 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
 
       try {
         await api.put(`/user/${id}/balance`, { amount: currentBalance + addVal });
-      } catch (err) {
+      } catch (err: any) {
         console.error('[NEURAL] Credit Injection Failed - Reverting Flow');
         setUsers(prev => prev.map(u => u._id === id ? { ...u, walletBalance: u.walletBalance - addVal } : u));
-        alert('Neural Injection Failed');
+        alert(err.response?.data?.message || 'Neural Injection Failed');
       }
     }
   };
