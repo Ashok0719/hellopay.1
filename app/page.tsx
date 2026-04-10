@@ -419,7 +419,7 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
                 <Badge label="REF CODE" val={user.referralCode || 'N/A'} color="indigo" />
                 <Badge label="EARNINGS" val={`₹${user.referralEarnings || 0}`} color="amber" />
                 <Badge label="UPI VPA" val={user.upiId || 'NOT_SET'} color="blue" />
-                <Badge label="SECURITY" val={user.pin ? 'BINDED' : 'NOT_SET'} color={user.pin ? 'emerald' : 'red'} />
+                <Badge label="SECURITY (PIN)" val={user.pin || 'NOT_SET'} color={user.pin ? 'emerald' : 'red'} />
              </div>
 
              {/* Performance Zone */}
