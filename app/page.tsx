@@ -46,7 +46,7 @@ const api = axios.create({
            : (process.env.NEXT_PUBLIC_API_URL.endsWith('/api') 
               ? `${process.env.NEXT_PUBLIC_API_URL}/admin` 
               : `${process.env.NEXT_PUBLIC_API_URL}/api/admin`))
-        : 'https://api.hellopayapp.com/api/admin'),
+        : 'https://hellopay-neural-api.onrender.com/api/admin'),
 });
 
 export default function AdminDashboard() {
