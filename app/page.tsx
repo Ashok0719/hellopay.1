@@ -561,8 +561,8 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
     try {
       await api.post(`/transactions/${id}/${action}`);
       fetchTxs();
-    } catch (err) {
-      alert('Action failed');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Action failed');
     }
   };
 
@@ -608,7 +608,9 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
 
       {!showQueue ? (
         <div className="space-y-6">
-          {filteredTxs.map((tx, i) => (
+          {filteredTxs
+            .filter(tx => tx.type !== 'ROTATION')
+            .map((tx, i) => (
             <div key={tx._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl relative overflow-hidden group">
                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-20" />
                <div className="flex items-center gap-10">
