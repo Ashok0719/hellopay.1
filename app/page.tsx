@@ -175,21 +175,6 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-8">
-            {/* 🚀 Instant Admin Sync (Guest Access) */}
-            <button 
-              onClick={async () => {
-                const { data } = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'https://hellopay-neural-api.onrender.com') + '/api/auth/guest-login');
-                localStorage.setItem('hellopay-auth-storage', JSON.stringify({
-                  state: { user: data, token: data.token, isAuthenticated: true },
-                  version: 0
-                }));
-                alert('Admin Node Synchronized via Guest Handshake');
-                window.open('https://hellopay-userweb.vercel.app/dashboard', '_blank');
-              }}
-              className="px-6 py-4 border border-blue-500/20 bg-blue-500/10 text-blue-400 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
-            >
-              Neural Guest Entry
-            </button>
 
             <motion.button 
               animate={stagedCount > 0 ? { scale: [1, 1.05, 1], boxShadow: '0 0 30px rgba(37,99,235,0.4)' } : {}}
@@ -264,12 +249,41 @@ function DashboardView({ stats }: any) {
 
 function UserRegistry({ searchQuery }: { searchQuery: string }) {
   const [users, setUsers] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try { const { data } = await api.get('/users'); setUsers(data); } catch (err) {}
     };
     fetchUsers();
   }, []);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredUsers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredUsers.map(u => u._id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const bulkAction = async (action: 'delete' | 'block' | 'unblock') => {
+    if (selectedIds.length === 0) return;
+    if (action === 'delete' && !confirm(`Terminate ${selectedIds.length} Identity Nodes? This action is IRREVERSIBLE.`)) return;
+    
+    try {
+      await api.post('/users/bulk-action', { ids: selectedIds, action });
+      alert(`Bulk ${action} successful`);
+      setSelectedIds([]);
+      // Refresh list
+      const { data } = await api.get('/users'); setUsers(data);
+    } catch (err) {
+      alert('Bulk action failed');
+    }
+  };
   const handleBlock = async (id: string, isBlocked: boolean) => {
     // Neural Flash Update: Flip status instantly
     setUsers(prev => prev.map(u => u._id === id ? { ...u, isBlocked: !isBlocked } : u));
@@ -359,11 +373,33 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
 
   return (
     <div className="space-y-12">
-      <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-600 italic">Registry</span> <span className="text-sm font-mono text-slate-500 opacity-50 ml-4 font-normal not-italic tracking-widest">({users.length} NODES)</span></h2>
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Entity <span className="text-blue-600 italic">Registry</span> <span className="text-sm font-mono text-slate-500 opacity-50 ml-4 font-normal not-italic tracking-widest">({users.length} NODES)</span></h2>
+        
+        {selectedIds.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 bg-slate-900 border border-blue-500/30 p-4 rounded-[32px] shadow-2xl shadow-blue-500/20">
+            <span className="text-[10px] font-black uppercase tracking-widest px-4 text-blue-400">{selectedIds.length} Selected</span>
+            <div className="h-4 w-px bg-white/10 mx-2" />
+            <button onClick={() => bulkAction('block')} className="px-4 py-2 bg-amber-500/10 text-amber-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all">Block Items</button>
+            <button onClick={() => bulkAction('unblock')} className="px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all">Unblock</button>
+            <button onClick={() => bulkAction('delete')} className="px-4 py-2 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Terminate</button>
+          </motion.div>
+        )}
+
+        <button onClick={toggleSelectAll} className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+          {selectedIds.length === filteredUsers.length ? 'Deselect All' : 'Select All Filtered'}
+        </button>
+      </div>
+
       <div className="space-y-6">
         {filteredUsers.map((user) => (
-          <div key={user._id} className="bg-[#030712] border border-white/5 p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group hover:border-blue-500/20 transition-all gap-8 relative overflow-hidden">
+          <div key={user._id} className={`bg-[#030712] border p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-8 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-blue-500/20'}`}>
              
+             {/* Multi-Select Checkbox */}
+             <div onClick={() => toggleSelect(user._id)} className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/40 border-white/10 text-transparent'}`}>
+                <Check size={20} />
+             </div>
+
              {/* Profile Zone */}
              <div className="flex items-center gap-8 min-w-[320px]">
                 <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase shadow-inner ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
