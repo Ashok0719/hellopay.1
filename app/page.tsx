@@ -688,7 +688,9 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
                          <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3"><Terminal size={14}/> AI Extracted Signals</h5>
                          <div className="space-y-4">
                             <SignalField label="Amount" val={tx.ocrData?.extractedAmount ? `₹${tx.ocrData.extractedAmount}` : 'NULL'} expected={`₹${tx.amount}`} match={tx.ocrData?.extractedAmount === tx.amount} />
-                            <SignalField label="UTR" val={tx.ocrData?.extractedUtr || 'NULL'} expected={tx.utr} match={!!tx.ocrData?.extractedUtr && tx.ocrData?.extractedUtr === tx.utr} />
+                            <SignalField label="User UTR" val={tx.utr || 'NULL'} />
+                            <SignalField label="OCR UTR" val={tx.ocrData?.extractedUtr || 'NULL'} expected={tx.utr} match={tx.ocrData?.utrMatch} />
+                            <SignalField label="UTR Match" val={tx.ocrData?.utrMatch ? 'YES (AUTO)' : 'NO'} match={tx.ocrData?.utrMatch} />
                             <SignalField label="Identity" val={tx.ocrData?.extractedReceiver ? 'MATCHED' : 'NOT DETECTED'} />
                          </div>
                       </div>
@@ -718,12 +720,12 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
   );
 }
 
-function SignalField({ label, val, expected, match }: any) {
+function SignalField({ label, val, expected, match, color }: any) {
   return (
     <div className="flex justify-between items-center border-b border-white/5 pb-4">
        <div className="flex flex-col">
           <span className="text-[9px] font-black uppercase text-slate-600 mb-1 tracking-widest">{label}</span>
-          <span className={`text-[12px] font-black italic ${match === true ? 'text-emerald-500' : match === false ? 'text-rose-500' : 'text-white'}`}>{val}</span>
+          <span className={`text-[12px] font-black italic ${color ? color : (match === true ? 'text-emerald-500' : match === false ? 'text-rose-500' : 'text-white')}`}>{val}</span>
        </div>
        {expected && (
           <div className="text-right">
