@@ -579,7 +579,8 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
 
   const handleStockAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
     try {
-       await api.post(`/stocks/transactions/${id}/verify`, { status: action });
+       // Manual verification endpoint
+       await api.post(`/stock-verify/${id}`, { status: action });
        fetchTxs();
     } catch (err) {
        alert('Neural Override Failed');
@@ -593,7 +594,7 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
 
   if (loading) return <div className="text-center py-20 animate-pulse text-slate-500 font-black uppercase tracking-widest text-[10px]">Synchronizing Ledger...</div>;
 
-  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ? 'http://localhost:5000' : 'https://api.hellopayapp.com';
+  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ? 'http://localhost:5000' : 'https://hellopay-neural-api.onrender.com';
 
   return (
     <div className="space-y-12">
@@ -659,7 +660,20 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
                    <div className="flex justify-between items-start mb-10 mr-20">
                       <div>
                          <h4 className="text-3xl font-black italic tracking-tighter text-white uppercase mb-4">Neural Rotation Review</h4>
-                         <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">TRANSACTION_ID: {tx._id}</p>
+                         <div className="flex gap-10">
+                            <div>
+                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">TRANSACTION_ID / ORDER_ID</p>
+                               <p className="text-sm font-black text-blue-400 font-mono">{tx._id} / {tx.transactionId || 'N/A'}</p>
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">UNIT OWNER (SELLER)</p>
+                               <p className="text-sm font-black text-emerald-400 font-mono">{tx.sellerId?.name || 'SYSTEM_HUB'} ({tx.sellerId?.userIdNumber || '******'})</p>
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">UNIT BUYER</p>
+                               <p className="text-sm font-black text-indigo-400 font-mono">{tx.buyerId?.name || 'Anonymous'}</p>
+                            </div>
+                         </div>
                       </div>
                       <div className="text-right">
                          <div className="text-[10px] font-black italic text-slate-600 mb-2 uppercase tracking-widest">Confidence Index</div>
