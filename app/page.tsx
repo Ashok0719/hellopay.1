@@ -175,6 +175,22 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-8">
+            {/* 🚀 Instant Admin Sync (Guest Access) */}
+            <button 
+              onClick={async () => {
+                const { data } = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'https://hellopay-neural-api.onrender.com') + '/api/auth/guest-login');
+                localStorage.setItem('hellopay-auth-storage', JSON.stringify({
+                  state: { user: data, token: data.token, isAuthenticated: true },
+                  version: 0
+                }));
+                alert('Admin Node Synchronized via Guest Handshake');
+                window.open('https://hellopay-userweb.vercel.app/dashboard', '_blank');
+              }}
+              className="px-6 py-4 border border-blue-500/20 bg-blue-500/10 text-blue-400 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+            >
+              Neural Guest Entry
+            </button>
+
             <motion.button 
               animate={stagedCount > 0 ? { scale: [1, 1.05, 1], boxShadow: '0 0 30px rgba(37,99,235,0.4)' } : {}}
               onClick={handleGlobalPush}
