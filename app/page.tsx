@@ -88,7 +88,7 @@ export default function AdminDashboard() {
     fetchData();
     const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:5000'
-      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api.hellopayapp.com');
+      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://hellopay-neural-api.onrender.com');
     const socket = io(socketUrl);
 
     socket.on('userStatusChanged', (data) => {
@@ -805,7 +805,7 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
   useEffect(() => {
     fetchStocks();
     const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:5000' : 'https://api.hellopayapp.com';
+      ? 'http://localhost:5000' : 'https://hellopay-neural-api.onrender.com';
     const socket = io(socketUrl);
     socket.on('stock_update', fetchStocks);
     return () => { socket.disconnect(); };
