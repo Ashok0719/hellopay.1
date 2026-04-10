@@ -545,7 +545,7 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
       const { data } = await api.get('/transactions'); 
       // Actually /transactions only returns Transactions. I'll need a new route or filter.
       // For now, I'll assume /transactions returns the merged history I implemented earlier.
-      setStockTxs(txRes.data.filter((t: any) => t.type === 'ROTATION' && (t.status === 'PENDING_REVIEW' || t.status === 'INIT')));
+      setStockTxs(txRes.data.filter((t: any) => t.type === 'ROTATION' && (t.status === 'PENDING_VERIFICATION' || t.status === 'PENDING_PAYMENT')));
     } catch (err) {
       console.error('Failed to fetch transactions');
     } finally {
@@ -602,7 +602,7 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
          <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white flex items-center gap-6">Neural <span className="text-indigo-500 italic">Monitoring</span></h2>
          <div className="flex bg-slate-900/40 p-2 rounded-2xl border border-white/5">
             <button onClick={() => setShowQueue(false)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!showQueue ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>General Ledger</button>
-            <button onClick={() => setShowQueue(true)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showQueue ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Verification Queue {stockTxs.length > 0 && <span className="ml-2 bg-white text-black px-1.5 rounded-full">{stockTxs.length}</span>}</button>
+            <button onClick={() => setShowQueue(true)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showQueue ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Verification Queue {stockTxs.filter((t: any) => t.status === 'PENDING_VERIFICATION').length > 0 && <span className="ml-2 bg-white text-black px-1.5 rounded-full">{stockTxs.filter((t: any) => t.status === 'PENDING_VERIFICATION').length}</span>}</button>
          </div>
       </div>
 
@@ -624,14 +624,14 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
                      </div>
                      <div className="flex items-center gap-4 mt-2">
                         <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> {new Date(tx.createdAt).toLocaleString()}</span>
-                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${tx.status === 'PENDING' || tx.status === 'PENDING_REVIEW' ? 'bg-indigo-600/10 text-indigo-500 border border-indigo-500/10' : tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-red-500/10 text-red-500 border border-red-500/10'}`}>{tx.status}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${tx.status === 'PENDING_PAYMENT' || tx.status === 'PENDING_VERIFICATION' ? 'bg-indigo-600/10 text-indigo-500 border border-indigo-500/10' : tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-red-500/10 text-red-500 border border-red-500/10'}`}>{tx.status}</span>
                      </div>
                   </div>
                </div>
                <div className="flex items-center gap-12 font-black italic text-2xl tabular-nums text-white">
                   ₹{tx.amount?.toLocaleString()}
                   <div className="flex gap-4 ml-8 px-8 border-l border-white/5 text-sm h-16 items-center">
-                    {(tx.status === 'PENDING' || tx.status === 'INIT') && (
+                    {(tx.status === 'PENDING_PAYMENT' || tx.status === 'PENDING_VERIFICATION') && (
                       <>
                         <button onClick={() => handleAction(tx._id, 'approve')} className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"><Check size={24} /></button>
                         <button onClick={() => handleAction(tx._id, 'reject')} className="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Minus size={24} /></button>
