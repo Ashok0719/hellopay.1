@@ -164,7 +164,7 @@ export default function AdminDashboard() {
           <SidebarLink icon={<Database size={20}/>} label="Stock Management" active={activeTab === 'stocks'} onClick={() => setActiveTab('stocks')} />
           <SidebarLink icon={<Zap size={20}/>} label="Splitup Processor" active={activeTab === 'splitup'} onClick={() => setActiveTab('splitup')} />
           <SidebarLink icon={<LayoutGrid size={20}/>} label="Asset Manager" active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} />
-          <SidebarLink icon={<Activity size={20}/>} label="TX Monitoring" active={activeTab === 'monitoring'} onClick={() => setActiveTab('monitoring')} />
+          <SidebarLink icon={<ShieldCheck size={20}/>} label="Payment Verification" active={activeTab === 'verification'} onClick={() => setActiveTab('verification')} />
           <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </nav>
 
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
                {activeTab === 'stocks' && <StockRegistry key="stocks" searchQuery={searchQuery} />}
                {activeTab === 'splitup' && <SplitupRegistry key="splitup" searchQuery={searchQuery} />}
                {activeTab === 'assets' && <AssetManager key="assets" config={config} setConfig={handleConfigChange} />}
-               {activeTab === 'monitoring' && <MonitoringView key="monitoring" searchQuery={searchQuery} />}
+               {activeTab === 'verification' && <PaymentVerificationView key="verification" searchQuery={searchQuery} />}
                {activeTab === 'settings' && <OperationsCenter key="settings" config={config} setConfig={handleConfigChange} />}
             </AnimatePresence>
           </div>
@@ -549,26 +549,17 @@ function AssetManager({ config, setConfig }: any) {
   );
 }
 
-// --- TX Monitoring View (Real-time Feed) ---
-function MonitoringView({ searchQuery }: { searchQuery: string }) {
+// --- Payment Verification View ---
+function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const [txs, setTxs] = useState<any[]>([]);
-  const [stockTxs, setStockTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showQueue, setShowQueue] = useState(false);
 
   const fetchTxs = async () => {
+    setLoading(true);
     try {
-      const [txRes, stockRes] = await Promise.all([
-        api.get('/transactions'),
-        api.get('/stocks/list') // For monitoring context if needed, but we need stock transactions
-      ]);
-      setTxs(txRes.data);
-      
-      // Fetch specifically PENDING_REVIEW stock transactions
-      const { data } = await api.get('/transactions'); 
-      // Actually /transactions only returns Transactions. I'll need a new route or filter.
-      // For now, I'll assume /transactions returns the merged history I implemented earlier.
-      setStockTxs(txRes.data.filter((t: any) => t.type === 'ROTATION' && (t.status === 'PENDING_VERIFICATION' || t.status === 'PENDING_PAYMENT')));
+      const { data } = await api.get('/transactions');
+      // Filter for stock rotations that need verification or were recently verified
+      setTxs(data.filter((t: any) => t.type === 'ROTATION'));
     } catch (err) {
       console.error('Failed to fetch transactions');
     } finally {
@@ -580,165 +571,158 @@ function MonitoringView({ searchQuery }: { searchQuery: string }) {
     fetchTxs();
   }, []);
 
-  const handleAction = async (id: string, action: 'approve' | 'reject') => {
+  const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
     try {
-      await api.post(`/transactions/${id}/${action}`);
+      // Logic for manual override
+      await api.post(`/stock-verify/${id}`, { status: action });
       fetchTxs();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Action failed');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Neural Purge: Permanent deletion requested. Proceed with identity termination?')) {
-      try {
-        await api.delete(`/transactions/${id}`);
-        fetchTxs();
-      } catch (err) {
-        alert('Neural Purge sequence failed');
-      }
-    }
-  };
-
-  const handleStockAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
-    try {
-       // Manual verification endpoint
-       await api.post(`/stock-verify/${id}`, { status: action });
-       fetchTxs();
-    } catch (err) {
-       alert('Neural Override Failed');
+      alert(err.response?.data?.message || 'Neural Override Failed');
     }
   };
 
   const filteredTxs = txs.filter(tx => 
-    tx.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tx._id.toLowerCase().includes(searchQuery.toLowerCase())
+    tx.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.sellerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.utr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.transactionId?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) return <div className="text-center py-20 animate-pulse text-slate-500 font-black uppercase tracking-widest text-[10px]">Synchronizing Ledger...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-40 gap-6">
+       <RefreshCw className="text-blue-500 animate-spin" size={48} />
+       <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-600">Syncing Verification Hub...</p>
+    </div>
+  );
 
-  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ? 'http://localhost:5000' : 'https://hellopay-neural-api.onrender.com';
+  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) 
+    ? 'http://localhost:5000' 
+    : 'https://hellopay-neural-api.onrender.com';
 
   return (
     <div className="space-y-12">
       <div className="flex justify-between items-center">
-         <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white flex items-center gap-6">Neural <span className="text-indigo-500 italic">Monitoring</span></h2>
-         <div className="flex bg-slate-900/40 p-2 rounded-2xl border border-white/5">
-            <button onClick={() => setShowQueue(false)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!showQueue ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>General Ledger</button>
-            <button onClick={() => setShowQueue(true)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${showQueue ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Verification Queue {stockTxs.filter((t: any) => t.status === 'PENDING_VERIFICATION').length > 0 && <span className="ml-2 bg-white text-black px-1.5 rounded-full">{stockTxs.filter((t: any) => t.status === 'PENDING_VERIFICATION').length}</span>}</button>
+         <div>
+           <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Payment <span className="text-blue-600">Verification</span></h2>
+           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+             <Activity size={14} className="text-emerald-500 animate-pulse" /> Auto-Verifying Engine Active - Manual Overrides Enabled
+           </p>
          </div>
+         <button onClick={fetchTxs} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all">
+            <RefreshCw size={20} />
+         </button>
       </div>
 
-      {!showQueue ? (
-        <div className="space-y-6">
-          {filteredTxs
-            .filter(tx => tx.type !== 'ROTATION')
-            .map((tx, i) => (
-            <div key={tx._id} className="bg-slate-900/40 border border-white/5 p-10 rounded-[56px] flex items-center justify-between shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-20" />
-               <div className="flex items-center gap-10">
-                  <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center ${tx.type === 'ROTATION' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                     <ArrowRightLeft size={24} />
-                  </div>
-                  <div className="flex-1">
-                     <div className="flex items-center gap-3">
-                        <h4 className="text-xl font-black text-white italic">{tx.user?.name || 'Anonymous Node'}</h4>
-                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded-md border border-white/10 text-slate-500">{(tx.type || 'TX').replace('_', ' ')}</span>
-                     </div>
-                     <div className="flex items-center gap-4 mt-2">
-                        <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> {new Date(tx.createdAt).toLocaleString()}</span>
-                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${tx.status === 'PENDING_PAYMENT' || tx.status === 'PENDING_VERIFICATION' ? 'bg-indigo-600/10 text-indigo-500 border border-indigo-500/10' : tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10' : 'bg-red-500/10 text-red-500 border border-red-500/10'}`}>{tx.status}</span>
-                     </div>
-                  </div>
+      <div className="grid grid-cols-1 gap-8">
+        {filteredTxs.map((tx) => (
+          <div key={tx._id} className={`bg-[#030712] border rounded-[48px] overflow-hidden shadow-2xl flex flex-col xl:flex-row h-auto xl:h-[450px] transition-all ${tx.status === 'PENDING_VERIFICATION' ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-white/5'}`}>
+            {/* Screenshot Area */}
+            <div className="w-full xl:w-[380px] h-[300px] xl:h-full bg-slate-950 flex flex-col items-center justify-center border-r border-white/5 relative group shrink-0">
+               {tx.screenshot ? (
+                  <img 
+                    src={tx.screenshot.startsWith('http') ? tx.screenshot : `${backendUrl}${tx.screenshot}`} 
+                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-all duration-500" 
+                    alt="Proof" 
+                  />
+               ) : (
+                  <div className="text-slate-700 italic font-black uppercase tracking-widest text-xs">Awaiting Signal Image</div>
+               )}
+               <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[9px] font-black text-white italic uppercase tracking-[0.2em] shadow-2xl">Signal Capture</div>
+               {tx.screenshot && (
+                 <a 
+                   href={tx.screenshot.startsWith('http') ? tx.screenshot : `${backendUrl}${tx.screenshot}`} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="absolute bottom-6 bg-blue-600/20 hover:bg-blue-600 p-3 rounded-xl border border-blue-500/30 opacity-0 group-hover:opacity-100 transition-all"
+                 >
+                   <Search size={18} />
+                 </a>
+               )}
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 p-8 lg:p-10 flex flex-col justify-between overflow-hidden">
+               <div>
+                 <div className="flex justify-between items-start mb-8">
+                    <div>
+                       <div className="flex items-center gap-3 mb-1">
+                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                            tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            tx.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+                            'bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse'
+                          }`}>
+                            {tx.status?.replace('_', ' ')}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || tx._id.slice(-8)}</span>
+                       </div>
+                       <h3 className="text-2xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
+                          Stock Node Purchase 
+                          <span className="text-blue-500">₹{tx.amount?.toLocaleString()}</span>
+                       </h3>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Neural Timestamp</p>
+                       <p className="text-xs font-mono text-slate-400">{new Date(tx.createdAt).toLocaleString()}</p>
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Unit Seller (User A)</p>
+                       <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-black text-xs">S</div>
+                          <div className="truncate">
+                             <p className="text-sm font-black text-white truncate">{tx.sellerId?.name || 'Admin Hub'}</p>
+                             <p className="text-[10px] font-mono text-slate-600">ID: {tx.sellerId?.userIdNumber || '******'}</p>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Unit Buyer (User B)</p>
+                       <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-black text-xs">B</div>
+                          <div className="truncate">
+                             <p className="text-sm font-black text-white truncate">{tx.buyerId?.name || 'Anonymous'}</p>
+                             <p className="text-[10px] font-mono text-slate-600">ID: {tx.buyerId?.userIdNumber || '******'}</p>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Signal Reference (UTR)</p>
+                       <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                             <Pin size={16} />
+                          </div>
+                          <p className="text-sm font-black text-amber-400 font-mono tracking-tight">{tx.utr || 'NOT_SUBMITTED'}</p>
+                       </div>
+                    </div>
+                 </div>
                </div>
-               <div className="flex items-center gap-12 font-black italic text-2xl tabular-nums text-white">
-                  ₹{tx.amount?.toLocaleString()}
-                  <div className="flex gap-4 ml-8 px-8 border-l border-white/5 text-sm h-16 items-center">
-                    {(tx.status === 'PENDING_PAYMENT' || tx.status === 'PENDING_VERIFICATION') && (
-                      <>
-                        <button onClick={() => handleAction(tx._id, 'approve')} className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all"><Check size={24} /></button>
-                        <button onClick={() => handleAction(tx._id, 'reject')} className="w-14 h-14 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><Minus size={24} /></button>
-                      </>
-                    )}
-                    <button onClick={() => handleDelete(tx._id)} className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><Trash2 size={24}/></button>
-                  </div>
+
+               <div className="flex gap-4">
+                  <button 
+                    onClick={() => handleAction(tx._id, 'SUCCESS')}
+                    className="flex-1 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black italic uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-emerald-500/10"
+                  >
+                    <CheckCircle size={18} /> Approve Signal
+                  </button>
+                  <button 
+                    onClick={() => handleAction(tx._id, 'FAILED')}
+                    className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95"
+                  >
+                    <XCircle size={18} /> Reject Attempt
+                  </button>
                </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-12">
-           {stockTxs.map((tx) => (
-             <div key={tx._id} className="bg-[#030712] border border-white/5 rounded-[56px] overflow-hidden shadow-2xl flex h-[500px]">
-                <div className="w-[400px] h-full bg-slate-900/50 p-10 flex flex-col items-center justify-center border-r border-white/5 relative group">
-                   {tx.screenshot ? (
-                      <img src={`${backendUrl}${tx.screenshot}`} className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl group-hover:scale-105 transition-all duration-700" alt="Proof" />
-                   ) : (
-                      <div className="text-slate-700 italic font-black uppercase tracking-widest text-sm">No Signal Screenshot</div>
-                   )}
-                   <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-black text-white italic uppercase tracking-[0.2em] shadow-2xl">Signal CAPTURE</div>
-                </div>
-                
-                <div className="flex-1 p-12 flex flex-col relative">
-                   <button onClick={() => handleDelete(tx._id)} className="absolute top-10 right-10 w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xl active:scale-95 z-20"><Trash2 size={24}/></button>
-                   
-                   <div className="flex justify-between items-start mb-10 mr-20">
-                      <div>
-                         <h4 className="text-3xl font-black italic tracking-tighter text-white uppercase mb-4">Neural Rotation Review</h4>
-                         <div className="flex gap-10">
-                            <div>
-                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">TRANSACTION_ID / ORDER_ID</p>
-                               <p className="text-sm font-black text-blue-400 font-mono">{tx._id} / {tx.transactionId || 'N/A'}</p>
-                            </div>
-                            <div>
-                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">UNIT OWNER (SELLER)</p>
-                               <p className="text-sm font-black text-emerald-400 font-mono">{tx.sellerId?.name || 'SYSTEM_HUB'} ({tx.sellerId?.userIdNumber || '******'})</p>
-                            </div>
-                            <div>
-                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">UNIT BUYER</p>
-                               <p className="text-sm font-black text-indigo-400 font-mono">{tx.buyerId?.name || 'Anonymous'}</p>
-                            </div>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <div className="text-[10px] font-black italic text-slate-600 mb-2 uppercase tracking-widest">Confidence Index</div>
-                         <div className={`text-4xl font-black italic ${tx.confidenceScore >= 80 ? 'text-emerald-500' : 'text-amber-500'}`}>{tx.confidenceScore || 0}%</div>
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-10 flex-1">
-                      <div className="bg-white/5 rounded-[40px] p-8 space-y-6">
-                         <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-3"><Terminal size={14}/> AI Extracted Signals</h5>
-                         <div className="space-y-4">
-                            <SignalField label="Amount" val={tx.ocrData?.extractedAmount ? `₹${tx.ocrData.extractedAmount}` : 'NULL'} expected={`₹${tx.amount}`} match={tx.ocrData?.extractedAmount === tx.amount} />
-                            <SignalField label="User UTR" val={tx.utr || 'NULL'} />
-                            <SignalField label="OCR UTR" val={tx.ocrData?.extractedUtr || 'NULL'} expected={tx.utr} match={tx.ocrData?.utrMatch} />
-                            <SignalField label="UTR Match" val={tx.ocrData?.utrMatch ? 'YES (AUTO)' : 'NO'} match={tx.ocrData?.utrMatch} />
-                            <SignalField label="Identity" val={tx.ocrData?.extractedReceiver ? 'MATCHED' : 'NOT DETECTED'} />
-                         </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-6">
-                         <div className="bg-indigo-600/5 border border-indigo-500/20 rounded-[40px] p-8 flex-1 flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-4">Ground Truth Verification</span>
-                            <div className="text-4xl font-black italic text-white mb-2">₹{tx.amount?.toLocaleString()}</div>
-                            <div className="text-[10px] font-mono text-indigo-400">NODE REF: {tx.utr || 'AWAITING_SIGNAL'}</div>
-                         </div>
-                         
-                         <div className="flex gap-6 h-28">
-                            <button onClick={() => handleStockAction(tx._id, 'SUCCESS')} className="flex-1 bg-emerald-600 rounded-[32px] text-white flex items-center justify-center font-black italic uppercase text-sm tracking-widest hover:scale-105 hover:bg-emerald-500 shadow-xl shadow-emerald-500/20 transition-all">APPROVE SIGNAL</button>
-                            <button onClick={() => handleStockAction(tx._id, 'FAILED')} className="flex-1 bg-red-600/10 border border-red-500/20 rounded-[32px] text-red-500 flex items-center justify-center font-black italic uppercase text-sm tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-500/5">PURGE ATTEMPT</button>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-           ))}
-           {stockTxs.length === 0 && (
-             <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[56px] text-slate-700 italic font-black uppercase tracking-[0.5em]">No neural verification tasks in buffer</div>
-           )}
-        </div>
-      )}
+          </div>
+        ))}
+        {filteredTxs.length === 0 && (
+           <div className="py-40 text-center bg-slate-900/40 rounded-[56px] border-2 border-dashed border-white/5">
+              <Activity size={48} className="mx-auto text-slate-800 mb-6" />
+              <p className="text-sm font-black uppercase tracking-[0.5em] text-slate-700 italic">No neural verification tasks in buffer</p>
+           </div>
+        )}
+      </div>
     </div>
   );
 }
