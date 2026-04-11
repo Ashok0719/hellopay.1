@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [stagedCount, setStagedCount] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -152,8 +153,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-blue-500/30 overflow-hidden flex">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-80 border-r border-white/5 bg-[#030712] flex flex-col p-8 fixed h-full z-50 shadow-2xl">
+      {/* Mobile Toggle */}
+      <button 
+        className="lg:hidden fixed bottom-8 right-8 z-[100] w-16 h-16 bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white border-4 border-slate-900 active:scale-90 transition-all"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? <XCircle size={28} /> : <LayoutGrid size={28} />}
+      </button>
+
+      {/* Sidebar - Transition for mobile */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-80 bg-[#030712] border-r border-white/5 flex flex-col p-8 shadow-2xl transition-transform duration-500 lg:translate-x-0 lg:static lg:h-screen
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
            <div className="flex items-center gap-4 mb-20 px-8">
               <div className="w-14 h-14 bg-blue-600 rounded-[20px] shadow-[0_20px_40px_rgba(37,99,235,0.4)] flex items-center justify-center">
                  <Zap size={28} className="text-white fill-white" />
@@ -165,13 +177,13 @@ export default function AdminDashboard() {
            </div>
 
         <nav className="flex-1 space-y-3">
-          <SidebarLink icon={<LayoutDashboard size={20}/>} label="Neural Dash" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <SidebarLink icon={<Users size={20}/>} label="Entity Registry" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-          <SidebarLink icon={<Database size={20}/>} label="Stock Management" active={activeTab === 'stocks'} onClick={() => setActiveTab('stocks')} />
-          <SidebarLink icon={<Zap size={20}/>} label="Splitup Processor" active={activeTab === 'splitup'} onClick={() => setActiveTab('splitup')} />
-          <SidebarLink icon={<LayoutGrid size={20}/>} label="Asset Manager" active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} />
-          <SidebarLink icon={<ShieldCheck size={20}/>} label="Payment Verification" active={activeTab === 'verification'} onClick={() => setActiveTab('verification')} />
-          <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+          <SidebarLink icon={<LayoutDashboard size={20}/>} label="Neural Dash" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<Users size={20}/>} label="Entity Registry" active={activeTab === 'users'} onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<Database size={20}/>} label="Stock Management" active={activeTab === 'stocks'} onClick={() => { setActiveTab('stocks'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<Zap size={20}/>} label="Splitup Processor" active={activeTab === 'splitup'} onClick={() => { setActiveTab('splitup'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<LayoutGrid size={20}/>} label="Asset Manager" active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<ShieldCheck size={20}/>} label="Payment Verification" active={activeTab === 'verification'} onClick={() => { setActiveTab('verification'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
         </nav>
 
         <div className="mt-auto">
@@ -189,7 +201,15 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Main Content - No margin on mobile, ml-80 on lg */}
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content - adjusted margin/padding for mobile */}
       <main className="flex-1 lg:ml-80 p-6 lg:p-12 overflow-y-auto max-h-screen custom-scrollbar relative overflow-x-hidden">
         <div className="flex justify-between items-center mb-16 relative z-10">
           <div className="relative w-full lg:w-96">
@@ -651,6 +671,14 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     ? 'http://localhost:5000' 
     : 'https://hellopay-neural-api.onrender.com';
 
+  const getImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const base = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return `${base}${p}`;
+  };
+
   return (
     <div className="space-y-12">
        <div className="flex justify-between items-center bg-slate-900/40 p-8 rounded-[40px] border border-white/5">
@@ -699,9 +727,9 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
             {/* Screenshot Area */}
             <div className={`w-full xl:w-[380px] h-[300px] xl:h-full bg-slate-950 flex flex-col items-center justify-center border-r border-white/5 relative group shrink-0 ${selectedIds.includes(tx._id) ? 'opacity-40' : ''}`}>
-               {tx.screenshot ? (
+                {tx.screenshot ? (
                   <img 
-                    src={tx.screenshot.startsWith('http') ? tx.screenshot : `${backendUrl}${tx.screenshot}`} 
+                    src={getImageUrl(tx.screenshot)} 
                     className="max-w-full max-h-full object-contain group-hover:scale-105 transition-all duration-500" 
                     alt="Proof" 
                   />
@@ -711,7 +739,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[9px] font-black text-white italic uppercase tracking-[0.2em] shadow-2xl">Signal Capture</div>
                {tx.screenshot && (
                  <a 
-                   href={tx.screenshot.startsWith('http') ? tx.screenshot : `${backendUrl}${tx.screenshot}`} 
+                   href={getImageUrl(tx.screenshot)} 
                    target="_blank" 
                    rel="noreferrer"
                    className="absolute bottom-6 bg-blue-600/20 hover:bg-blue-600 p-3 rounded-xl border border-blue-500/30 opacity-0 group-hover:opacity-100 transition-all"
@@ -786,24 +814,33 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                  </div>
                </div>
 
-               <div className="flex gap-4">
-                 <button 
-                   onClick={() => handleAction(tx._id, 'SUCCESS')}
-                   disabled={actionId === tx._id}
-                   className="flex-[2] h-16 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black italic uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-emerald-500/10 disabled:opacity-50"
-                 >
-                   {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-                   Approve Signal
-                 </button>
-                 <button 
-                   onClick={() => handleAction(tx._id, 'FAILED')}
-                   disabled={actionId === tx._id}
-                   className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
-                 >
-                   {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <XCircle size={18} />}
-                   Reject Attempt
-                 </button>
-               </div>
+                {tx.status === 'PENDING_VERIFICATION' ? (
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => handleAction(tx._id, 'SUCCESS')}
+                      disabled={actionId === tx._id}
+                      className="flex-[2] h-16 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black italic uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-emerald-500/10 disabled:opacity-50"
+                    >
+                      {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                      Approve Signal
+                    </button>
+                    <button 
+                      onClick={() => handleAction(tx._id, 'FAILED')}
+                      disabled={actionId === tx._id}
+                      className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <XCircle size={18} />}
+                      Reject Attempt
+                    </button>
+                  </div>
+                ) : (
+                  <div className="py-6 px-10 bg-white/5 rounded-[32px] border border-white/5 text-center flex flex-col justify-center w-full">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 mb-2">Neural Processed</p>
+                    <div className={`text-2xl font-black italic uppercase tracking-tighter ${tx.status === 'SUCCESS' ? 'text-emerald-500' : 'text-red-500'}`}>
+                       Signal {tx.status}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         ))}
