@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
@@ -57,6 +58,14 @@ export default function AdminDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [stagedCount, setStagedCount] = useState(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    const auth = localStorage.getItem('admin_auth');
+    if (auth !== 'true') {
+      router.push('/login');
+    }
+  }, [router]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -158,6 +167,20 @@ export default function AdminDashboard() {
           <SidebarLink icon={<Activity size={20}/>} label="TX Monitoring" active={activeTab === 'monitoring'} onClick={() => setActiveTab('monitoring')} />
           <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </nav>
+
+        <div className="mt-auto">
+          <SidebarLink 
+            icon={<LogOut size={20}/>} 
+            label="Terminate" 
+            active={false} 
+            onClick={() => {
+              if(confirm('Terminate Current Session?')) {
+                localStorage.removeItem('admin_auth');
+                router.push('/login');
+              }
+            }} 
+          />
+        </div>
       </aside>
 
       {/* Main Content - No margin on mobile, ml-80 on lg */}
