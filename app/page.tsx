@@ -420,24 +420,24 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
         </button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {filteredUsers.map((user) => (
-          <div key={user._id} className={`bg-[#030712] border p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-8 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-blue-500/20'}`}>
+          <div key={user._id} className={`bg-[#030712] border p-5 rounded-3xl flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-5 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-blue-500/20'}`}>
              
              {/* Multi-Select Checkbox */}
              <div 
                 onClick={() => toggleSelect(user._id)} 
-                className={`w-12 h-12 rounded-2xl border-4 flex items-center justify-center cursor-pointer transition-all ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-white/10 text-transparent hover:border-blue-500 hover:text-white/10'}`}
+                className={`w-10 h-10 rounded-xl border-4 flex items-center justify-center cursor-pointer transition-all shrink-0 ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-white/10 text-transparent hover:border-blue-500 hover:text-white/10'}`}
              >
-                <Check size={28} />
+                <Check size={24} />
              </div>
 
              {/* Profile Zone */}
-             <div className="flex items-center gap-8 min-w-[320px]">
-                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase shadow-inner ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
+             <div className="flex items-center gap-6 min-w-[280px]">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl italic uppercase shadow-inner ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
                 <div>
-                   <h4 className={`text-2xl font-black italic tracking-tighter transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
-                   <div className="flex items-center gap-3 mt-2">
+                   <h4 className={`text-xl font-black italic tracking-tighter transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
+                   <div className="flex items-center gap-3 mt-1.5">
                       <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono text-slate-600 uppercase tracking-widest">ID_{user.userIdNumber}</div>
                       <div className={`px-3 py-1 border rounded-lg text-[10px] font-mono uppercase tracking-widest ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
                          {user.phone?.startsWith('GUEST_') ? 'GUEST' : 'REGISTERED'}
@@ -1009,9 +1009,9 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {filtered.map((stock) => (
-          <div key={stock._id} className={`bg-[#030712] border p-8 rounded-[48px] flex items-center justify-between transition-all relative ${stock.isPinned ? 'border-amber-500/30' : 'border-white/5'} ${selectedIds.includes(stock._id) ? 'ring-2 ring-amber-500/40 border-amber-500/50' : ''}`}>
+          <div key={stock._id} className={`bg-[#030712] border p-6 rounded-[32px] flex items-center justify-between transition-all relative ${stock.isPinned ? 'border-amber-500/30' : 'border-white/5'} ${selectedIds.includes(stock._id) ? 'ring-2 ring-amber-500/40 border-amber-500/50' : ''}`}>
              
              {/* Multi-Select */}
              <div 
@@ -1021,9 +1021,9 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
                 <Check size={28} />
              </div>
 
-             <div className="flex items-center gap-10">
-                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${stock.isPinned ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-800 text-blue-500'}`}>
-                   {stock.isPinned ? <Star size={32} fill="currentColor" /> : <Database size={32} />}
+             <div className="flex items-center gap-6">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl italic uppercase ${stock.isPinned ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-800 text-blue-500'}`}>
+                   {stock.isPinned ? <Star size={24} fill="currentColor" /> : <Database size={24} />}
                 </div>
                 <div>
                    <h4 className="text-xl font-black italic tracking-tighter text-white uppercase">{stock.stockId}</h4>
