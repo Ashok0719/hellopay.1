@@ -553,6 +553,7 @@ function AssetManager({ config, setConfig }: any) {
 function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const [txs, setTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const fetchTxs = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -598,6 +599,31 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Permanently delete ${selectedIds.length} neural records?`)) return;
+    try {
+      await api.post('/transactions/bulk-action', { ids: selectedIds, action: 'delete' });
+      fetchTxs();
+      setSelectedIds([]);
+    } catch (err) {
+      alert('Neural Bulk Deletion Failed');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Purge this record from matrix?')) return;
+    try {
+      await api.delete(`/transactions/${id}`);
+      fetchTxs();
+    } catch (err) {
+      alert('Purge Sequence Failed');
+    }
+  };
+
   const filteredTxs = txs.filter(tx => 
     tx.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tx.sellerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -618,23 +644,52 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
   return (
     <div className="space-y-12">
-      <div className="flex justify-between items-center">
-         <div>
-           <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Payment <span className="text-blue-600">Verification</span></h2>
-           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-             <Activity size={14} className="text-emerald-500 animate-pulse" /> Auto-Verifying Engine Active - Manual Overrides Enabled
-           </p>
-         </div>
-         <button onClick={fetchTxs} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all">
-            <RefreshCw size={20} />
-         </button>
+       <div className="flex justify-between items-center bg-slate-900/40 p-8 rounded-[40px] border border-white/5">
+          <div className="flex items-center gap-10">
+            <div>
+              <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Payment <span className="text-blue-600">Verification</span></h2>
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 flex items-center gap-3">
+                <Activity size={14} className="text-emerald-500 animate-pulse" /> Auto-Verify Engine Active
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+             {selectedIds.length > 0 && (
+                <button 
+                  onClick={handleBulkDelete}
+                  className="px-8 py-4 bg-red-600/20 text-red-500 rounded-2xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-600 hover:text-white transition-all shadow-xl"
+                >
+                  <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+                </button>
+             )}
+             <button onClick={() => fetchTxs()} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all text-slate-400">
+                <RefreshCw size={20} />
+             </button>
+          </div>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
         {filteredTxs.map((tx) => (
-          <div key={tx._id} className={`bg-[#030712] border rounded-[48px] overflow-hidden shadow-2xl flex flex-col xl:flex-row h-auto xl:h-[450px] transition-all ${tx.status === 'PENDING_VERIFICATION' ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-white/5'}`}>
+          <div key={tx._id} className={`group bg-[#030712] border rounded-[48px] overflow-hidden shadow-2xl flex flex-col xl:flex-row h-auto xl:h-[450px] transition-all relative ${tx.status === 'PENDING_VERIFICATION' ? 'border-amber-500/30 ring-1 ring-amber-500/10' : 'border-white/5'}`}>
+            
+            {/* Multi-Select Overlay */}
+            <div 
+              onClick={() => toggleSelect(tx._id)}
+              className={`absolute top-8 left-8 z-50 w-8 h-8 rounded-xl border-2 cursor-pointer flex items-center justify-center transition-all ${selectedIds.includes(tx._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/60 border-white/20 text-transparent'}`}
+            >
+               <Check size={20} />
+            </div>
+
+            {/* Individual Delete */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleDelete(tx._id); }}
+              className="absolute top-8 right-8 z-50 p-3 bg-red-600/10 text-red-500 rounded-xl border border-red-500/20 hover:bg-red-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+            >
+               <Trash2 size={16} />
+            </button>
+
             {/* Screenshot Area */}
-            <div className="w-full xl:w-[380px] h-[300px] xl:h-full bg-slate-950 flex flex-col items-center justify-center border-r border-white/5 relative group shrink-0">
+            <div className={`w-full xl:w-[380px] h-[300px] xl:h-full bg-slate-950 flex flex-col items-center justify-center border-r border-white/5 relative group shrink-0 ${selectedIds.includes(tx._id) ? 'opacity-40' : ''}`}>
                {tx.screenshot ? (
                   <img 
                     src={tx.screenshot.startsWith('http') ? tx.screenshot : `${backendUrl}${tx.screenshot}`} 
