@@ -811,15 +811,37 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                        </div>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Signal Reference (UTR)</p>
-                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                             <Pin size={16} />
-                          </div>
-                          <p className="text-sm font-black text-amber-400 font-mono tracking-tight">{tx.utr || 'NOT_SUBMITTED'}</p>
-                       </div>
-                    </div>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Signal Reference (UTR)</p>
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                              <Pin size={16} />
+                           </div>
+                           <p className="text-sm font-black text-amber-400 font-mono tracking-tight">{tx.utr || 'NOT_SUBMITTED'}</p>
+                        </div>
+                     </div>
                  </div>
+
+                  {/* Feature: APK Metadata Tracking (Rule 6) */}
+                  <div className="flex items-center gap-4 mb-6">
+                     <div className="px-5 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${tx.deviceId ? 'bg-indigo-400 animate-pulse' : 'bg-slate-700'}`} />
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                           {tx.deviceId ? `APK LINKED [${tx.deviceId.slice(0, 8)}]` : 'WEB SOURCE'}
+                        </span>
+                     </div>
+                     {tx.ipAddress && (
+                        <div className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-3">
+                           <Activity size={12} className="text-slate-500" />
+                           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">IP: {tx.ipAddress}</span>
+                        </div>
+                     )}
+                     {tx.description?.includes('APK Auto-SMS') && (
+                        <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+                           <Zap size={12} className="text-emerald-500" />
+                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest italic">AUTO SIGNAL DETECTED</span>
+                        </div>
+                     )}
+                  </div>
                </div>
 
                 {tx.status === 'PENDING_VERIFICATION' ? (
