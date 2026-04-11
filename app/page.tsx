@@ -674,9 +674,17 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    const base = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    
+    // Neural Domain Resolver: Priority to Env > Local > Hardcoded Fallback
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')) || 
+                    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                      ? 'http://localhost:5000' 
+                      : 'https://hellopay-neural-api.onrender.com');
+    
+    const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
     const p = path.startsWith('/') ? path : `/${path}`;
-    return `${base}${p}`;
+    const cleanPath = p.replace(/\\/g, '/'); // Fix Windows-style slashes
+    return `${base}${cleanPath}`;
   };
 
   return (
@@ -727,9 +735,9 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
             {/* Screenshot Area */}
             <div className={`w-full xl:w-[380px] h-[300px] xl:h-full bg-slate-950 flex flex-col items-center justify-center border-r border-white/5 relative group shrink-0 ${selectedIds.includes(tx._id) ? 'opacity-40' : ''}`}>
-                {tx.screenshot ? (
+                {(tx.screenshot || tx.screenshotUrl) ? (
                   <img 
-                    src={getImageUrl(tx.screenshot)} 
+                    src={getImageUrl(tx.screenshot || tx.screenshotUrl)} 
                     className="max-w-full max-h-full object-contain group-hover:scale-105 transition-all duration-500" 
                     alt="Proof" 
                   />
@@ -737,9 +745,9 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                   <div className="text-slate-700 italic font-black uppercase tracking-widest text-xs">Awaiting Signal Image</div>
                )}
                <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 text-[9px] font-black text-white italic uppercase tracking-[0.2em] shadow-2xl">Signal Capture</div>
-               {tx.screenshot && (
+               {(tx.screenshot || tx.screenshotUrl) && (
                  <a 
-                   href={getImageUrl(tx.screenshot)} 
+                   href={getImageUrl(tx.screenshot || tx.screenshotUrl)} 
                    target="_blank" 
                    rel="noreferrer"
                    className="absolute bottom-6 bg-blue-600/20 hover:bg-blue-600 p-3 rounded-xl border border-blue-500/30 opacity-0 group-hover:opacity-100 transition-all"
