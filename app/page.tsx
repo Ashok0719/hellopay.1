@@ -571,13 +571,18 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     fetchTxs();
   }, []);
 
+  const [actionId, setActionId] = useState<string | null>(null);
+
   const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
+    setActionId(id);
     try {
       // Logic for manual override
       await api.post(`/stock-verify/${id}`, { status: action });
       fetchTxs();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Neural Override Failed');
+    } finally {
+      setActionId(null);
     }
   };
 
@@ -700,18 +705,22 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                </div>
 
                <div className="flex gap-4">
-                  <button 
-                    onClick={() => handleAction(tx._id, 'SUCCESS')}
-                    className="flex-1 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black italic uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-emerald-500/10"
-                  >
-                    <CheckCircle size={18} /> Approve Signal
-                  </button>
-                  <button 
-                    onClick={() => handleAction(tx._id, 'FAILED')}
-                    className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95"
-                  >
-                    <XCircle size={18} /> Reject Attempt
-                  </button>
+                 <button 
+                   onClick={() => handleAction(tx._id, 'SUCCESS')}
+                   disabled={actionId === tx._id}
+                   className="flex-[2] h-16 bg-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-white font-black italic uppercase text-xs tracking-[0.2em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-emerald-500/10 disabled:opacity-50"
+                 >
+                   {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                   Approve Signal
+                 </button>
+                 <button 
+                   onClick={() => handleAction(tx._id, 'FAILED')}
+                   disabled={actionId === tx._id}
+                   className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                 >
+                   {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <XCircle size={18} />}
+                   Reject Attempt
+                 </button>
                </div>
             </div>
           </div>
