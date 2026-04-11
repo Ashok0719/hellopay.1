@@ -209,8 +209,8 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* Main Content - adjusted margin/padding for mobile */}
-      <main className="flex-1 lg:ml-80 p-6 lg:p-12 overflow-y-auto max-h-screen custom-scrollbar relative overflow-x-hidden">
+      {/* Main Content - No margin-left needed when sidebar is static/flex */}
+      <main className="flex-1 p-6 lg:p-12 overflow-y-auto max-h-screen custom-scrollbar relative overflow-x-hidden">
         <div className="flex justify-between items-center mb-16 relative z-10">
           <div className="relative w-full lg:w-96">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
