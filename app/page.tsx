@@ -67,8 +67,8 @@ export default function AdminDashboard() {
     }
   }, [router]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [statsRes, configRes] = await Promise.all([
         api.get('/analytics'),
@@ -102,17 +102,17 @@ export default function AdminDashboard() {
 
     socket.on('userStatusChanged', (data) => {
       console.log('[NEURAL] Signal Received: Identity Status Update', data);
-      fetchData(); 
+      fetchData(true); 
     });
 
     socket.on('userDeleted', (data) => {
       console.log('[NEURAL] Signal Received: Entity Terminated', data);
-      fetchData();
+      fetchData(true);
     });
 
     socket.on('configUpdated', () => {
       console.log('[NEURAL] Signal Received: Global Parameters Updated');
-      fetchData();
+      fetchData(true);
     });
 
     return () => { socket.disconnect(); };
@@ -554,8 +554,8 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const [txs, setTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchTxs = async () => {
-    setLoading(true);
+  const fetchTxs = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data } = await api.get('/transactions');
       // Filter for stock rotations that need verification or were recently verified
@@ -563,12 +563,24 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     } catch (err) {
       console.error('Failed to fetch transactions');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTxs();
+    
+    const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:5000' 
+      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://hellopay-neural-api.onrender.com');
+    const socket = io(socketUrl);
+
+    socket.on('stock_update', () => {
+      console.log('[NEURAL] Stock Rotation Update - Refreshing Verification Hub');
+      fetchTxs(true);
+    });
+
+    return () => { socket.disconnect(); };
   }, []);
 
   const [actionId, setActionId] = useState<string | null>(null);
