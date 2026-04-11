@@ -95,10 +95,16 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
-    const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:5000'
-      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://hellopay-neural-api.onrender.com');
-    const socket = io(socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL 
+      ? process.env.NEXT_PUBLIC_API_URL.split('/api')[0] 
+      : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:5000'
+        : 'https://hellopay-neural-api.onrender.com');
+
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10
+    });
 
     socket.on('userStatusChanged', (data) => {
       console.log('[NEURAL] Signal Received: Identity Status Update', data);
@@ -419,8 +425,11 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
           <div key={user._id} className={`bg-[#030712] border p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-8 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-blue-500/20'}`}>
              
              {/* Multi-Select Checkbox */}
-             <div onClick={() => toggleSelect(user._id)} className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/40 border-white/10 text-transparent'}`}>
-                <Check size={20} />
+             <div 
+                onClick={() => toggleSelect(user._id)} 
+                className={`w-12 h-12 rounded-2xl border-4 flex items-center justify-center cursor-pointer transition-all ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-white/10 text-transparent hover:border-blue-500 hover:text-white/10'}`}
+             >
+                <Check size={28} />
              </div>
 
              {/* Profile Zone */}
@@ -675,9 +684,9 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
             {/* Multi-Select Overlay */}
             <div 
               onClick={() => toggleSelect(tx._id)}
-              className={`absolute top-8 left-8 z-50 w-8 h-8 rounded-xl border-2 cursor-pointer flex items-center justify-center transition-all ${selectedIds.includes(tx._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/60 border-white/20 text-transparent'}`}
+              className={`absolute top-8 left-8 z-[100] w-12 h-12 rounded-2xl border-4 cursor-pointer flex items-center justify-center transition-all ${selectedIds.includes(tx._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-white/20 text-transparent hover:border-blue-500 hover:text-white/20'}`}
             >
-               <Check size={20} />
+               <Check size={28} />
             </div>
 
             {/* Individual Delete */}
@@ -890,6 +899,7 @@ function OpToggle({ label, active, onChange }: any) {
 function StockRegistry({ searchQuery }: { searchQuery: string }) {
   const [stocks, setStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const fetchStocks = async () => {
     setLoading(true);
@@ -932,6 +942,27 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filtered.length) setSelectedIds([]);
+    else setSelectedIds(filtered.map(s => s._id));
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Terminate ${selectedIds.length} Neural Nodes?`)) return;
+    try {
+      await Promise.all(selectedIds.map(id => api.delete(`/stocks/${id}`)));
+      alert('Purge Sequence Complete');
+      setSelectedIds([]);
+      fetchStocks();
+    } catch (err) {
+      alert('Neural Bulk Purge Failed');
+    }
+  };
+
   const filtered = stocks.filter(s => 
     s.stockId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.ownerId?.userIdNumber?.toString().includes(searchQuery)
@@ -954,11 +985,36 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-      <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Stock <span className="text-amber-500">Inventory</span></h2>
+      <div className="flex justify-between items-end">
+        <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white">Stock <span className="text-amber-500">Inventory</span></h2>
+        
+        <div className="flex items-center gap-6">
+           {selectedIds.length > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="px-8 py-3 bg-red-600/20 text-red-500 rounded-2xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-600 hover:text-white transition-all shadow-xl"
+              >
+                <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+              </button>
+           )}
+           <button onClick={toggleSelectAll} className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-slate-400">
+             {selectedIds.length === filtered.length ? 'Deselect All' : 'Select All'}
+           </button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 gap-6">
         {filtered.map((stock) => (
-          <div key={stock._id} className={`bg-slate-900/40 border p-8 rounded-[48px] flex items-center justify-between transition-all ${stock.isPinned ? 'border-amber-500/30' : 'border-white/5'}`}>
+          <div key={stock._id} className={`bg-[#030712] border p-8 rounded-[48px] flex items-center justify-between transition-all relative ${stock.isPinned ? 'border-amber-500/30' : 'border-white/5'} ${selectedIds.includes(stock._id) ? 'ring-2 ring-amber-500/40 border-amber-500/50' : ''}`}>
+             
+             {/* Multi-Select */}
+             <div 
+                onClick={() => toggleSelect(stock._id)}
+                className={`w-12 h-12 rounded-2xl border-4 flex items-center justify-center cursor-pointer transition-all shrink-0 ${selectedIds.includes(stock._id) ? 'bg-amber-500 border-amber-400 text-white' : 'bg-slate-900 border-white/10 text-transparent hover:border-amber-500 hover:text-white/10'}`}
+             >
+                <Check size={28} />
+             </div>
+
              <div className="flex items-center gap-10">
                 <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${stock.isPinned ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-800 text-blue-500'}`}>
                    {stock.isPinned ? <Star size={32} fill="currentColor" /> : <Database size={32} />}
