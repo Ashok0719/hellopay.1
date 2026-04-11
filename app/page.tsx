@@ -390,9 +390,9 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
       red: 'bg-red-500/10 text-red-400 border-red-500/20', 
       slate: 'bg-white/5 text-slate-500 border-white/10' 
     };
-    return <div className={`px-6 py-5 rounded-[24px] flex flex-col border transition-all hover:shadow-xl ${colors[color] || colors.slate}`}>
+    return <div className={`px-6 py-5 rounded-[24px] flex flex-col border transition-all hover:bg-white/[0.02] ${colors[color] || colors.slate}`}>
       <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1 leading-none">{label}</span>
-      <span className="text-[13px] font-black tabular-nums truncate" title={val}>{val}</span>
+      <span className="text-[13px] font-black tabular-nums truncate">{String(val)}</span>
     </div>;
   };
 
@@ -486,9 +486,8 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
         ))}
         {filteredUsers.length === 0 && (
           <div className="py-40 text-center bg-slate-900/40 rounded-[56px] border-2 border-dashed border-white/5">
-            <Activity size={48} className="mx-auto text-slate-800 mb-6" />
             <p className="text-sm font-black uppercase tracking-[0.5em] text-slate-700 italic">No node entities detected in matrix</p>
-            <button onClick={fetchUsers} className="mt-8 px-8 py-3 bg-blue-600/10 text-blue-500 border border-blue-500/20 rounded-2xl hover:bg-blue-600 hover:text-white transition-all text-xs font-black uppercase tracking-widest">Re-Sync Node Logic</button>
+            <button onClick={fetchUsers} className="mt-8 px-8 py-4 bg-blue-600 rounded-2xl text-white text-[10px] font-black uppercase tracking-widest shadow-xl">Re-Sync Node Logic</button>
           </div>
         )}
       </div>
