@@ -390,9 +390,9 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
       red: 'bg-red-500/10 text-red-400 border-red-500/20', 
       slate: 'bg-white/5 text-slate-500 border-white/10' 
     };
-    return <div className={`px-6 py-5 rounded-[24px] flex flex-col border transition-all hover:scale-105 ${colors[color] || colors.slate}`}>
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">{label}</span>
-      <span className="text-sm font-black tabular-nums break-all">{val}</span>
+    return <div className={`px-6 py-5 rounded-[24px] flex flex-col border transition-all hover:shadow-xl ${colors[color] || colors.slate}`}>
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1 leading-none">{label}</span>
+      <span className="text-[13px] font-black tabular-nums truncate" title={val}>{val}</span>
     </div>;
   };
 
@@ -445,7 +445,7 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
              </div>
 
              {/* Meta Zone */}
-             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full xl:w-auto">
                 <Badge label="REF CODE" val={user.referralCode || 'N/A'} color="indigo" />
                 <Badge label="EARNINGS" val={`₹${user.referralEarnings || 0}`} color="amber" />
                 <Badge label="UPI VPA" val={user.upiId || 'NOT_SET'} color="blue" />
