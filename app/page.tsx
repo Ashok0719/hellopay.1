@@ -444,12 +444,14 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
                 </div>
              </div>
 
-             {/* Meta Zone */}
-             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full xl:w-auto">
-                <Badge label="REF CODE" val={user.referralCode || 'N/A'} color="indigo" />
-                <Badge label="EARNINGS" val={`₹${user.referralEarnings || 0}`} color="amber" />
-                <Badge label="UPI VPA" val={user.upiId || 'NOT_SET'} color="blue" />
-                <Badge label="SECURITY (PIN)" val={user.pin || 'NOT_SET'} color={user.pin ? 'emerald' : 'red'} />
+             {/* Meta Zone - Optimized for zero overlap */}
+             <div className="flex-1 w-full xl:w-auto min-w-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                   <Badge label="REF CODE" val={user.referralCode || 'N/A'} color="indigo" />
+                   <Badge label="EARNINGS" val={`₹${user.referralEarnings || 0}`} color="amber" />
+                   <Badge label="UPI VPA" val={user.upiId || 'NOT_SET'} color="blue" />
+                   <Badge label="SECURITY (PIN)" val={user.pin || 'NOT_SET'} color={user.pin ? 'emerald' : 'red'} />
+                </div>
              </div>
 
              {/* Performance Zone */}
