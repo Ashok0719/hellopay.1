@@ -728,7 +728,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                           <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || tx._id.slice(-8)}</span>
                        </div>
                        <h3 className="text-2xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
-                          Stock Node Purchase 
+                          Node Purchase {tx.stockId?.stockId && <span className="text-amber-500">[{tx.stockId.stockId}]</span>}
                           <span className="text-blue-500">₹{tx.amount?.toLocaleString()}</span>
                        </h3>
                     </div>
@@ -936,9 +936,19 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
     s.stockId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.ownerId?.userIdNumber?.toString().includes(searchQuery)
   ).sort((a,b) => {
-    // If exact match on Stock ID, move to top
-    if (a.stockId.toLowerCase() === searchQuery.toLowerCase()) return -1;
-    if (b.stockId.toLowerCase() === searchQuery.toLowerCase()) return 1;
+    const q = searchQuery.toLowerCase();
+    // Prioritize exact Stock ID match
+    const aMatch = a.stockId.toLowerCase() === q;
+    const bMatch = b.stockId.toLowerCase() === q;
+    if (aMatch && !bMatch) return -1;
+    if (bMatch && !aMatch) return 1;
+    
+    // Then partial ID match
+    const aPartial = a.stockId.toLowerCase().includes(q);
+    const bPartial = b.stockId.toLowerCase().includes(q);
+    if (aPartial && !bPartial) return -1;
+    if (bPartial && !aPartial) return 1;
+
     return 0;
   });
 
