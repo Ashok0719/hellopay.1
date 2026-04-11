@@ -382,10 +382,17 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
   );
 
   const Badge = ({ label, val, color }: any) => {
-    const colors: any = { indigo: 'bg-indigo-500/10 text-indigo-400', amber: 'bg-amber-500/10 text-amber-500', blue: 'bg-blue-500/10 text-blue-400', emerald: 'bg-emerald-500/10 text-emerald-400', red: 'bg-red-500/10 text-red-400', slate: 'bg-white/5 text-slate-500' };
-    return <div className={`px-4 py-2 rounded-xl flex flex-col border border-white/5 ${colors[color] || colors.slate}`}>
-      <span className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-0.5">{label}</span>
-      <span className="text-[11px] font-black tabular-nums truncate">{val}</span>
+    const colors: any = { 
+      indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 
+      amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20', 
+      blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20', 
+      emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', 
+      red: 'bg-red-500/10 text-red-400 border-red-500/20', 
+      slate: 'bg-white/5 text-slate-500 border-white/10' 
+    };
+    return <div className={`px-6 py-5 rounded-[24px] flex flex-col border transition-all hover:scale-105 ${colors[color] || colors.slate}`}>
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50 mb-2">{label}</span>
+      <span className="text-sm font-black tabular-nums break-all">{val}</span>
     </div>;
   };
 
@@ -416,21 +423,21 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
 
       <div className="space-y-6">
         {filteredUsers.map((user) => (
-          <div key={user._id} className={`bg-[#030712] border p-8 rounded-[48px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-8 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/5 hover:border-blue-500/20'}`}>
+          <div key={user._id} className={`bg-[#030712] border p-12 rounded-[56px] flex flex-col xl:flex-row items-start xl:items-center justify-between shadow-2xl group transition-all gap-12 relative overflow-hidden ${selectedIds.includes(user._id) ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-white/5 hover:border-blue-500/20'}`}>
              
              {/* Multi-Select Checkbox */}
-             <div onClick={() => toggleSelect(user._id)} className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center cursor-pointer transition-all ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/40 border-white/10 text-transparent'}`}>
-                <Check size={20} />
+             <div onClick={() => toggleSelect(user._id)} className={`w-12 h-12 rounded-[20px] border-2 flex items-center justify-center cursor-pointer transition-all shrink-0 ${selectedIds.includes(user._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-black/40 border-white/10 text-transparent'}`}>
+                <Check size={24} />
              </div>
-
+ 
              {/* Profile Zone */}
-             <div className="flex items-center gap-8 min-w-[320px]">
-                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase shadow-inner ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
+             <div className="flex items-center gap-10 min-w-[380px]">
+                <div className={`w-24 h-24 rounded-[40px] flex items-center justify-center font-black text-4xl italic uppercase shadow-2xl ${user.isBlocked ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-blue-500'}`}>{user.name ? user.name[0] : '?'}</div>
                 <div>
-                   <h4 className={`text-2xl font-black italic tracking-tighter transition-all ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
-                   <div className="flex items-center gap-3 mt-2">
-                      <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono text-slate-600 uppercase tracking-widest">ID_{user.userIdNumber}</div>
-                      <div className={`px-3 py-1 border rounded-lg text-[10px] font-mono uppercase tracking-widest ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                   <h4 className={`text-3xl font-black italic tracking-tighter transition-all mb-1 ${user.isBlocked ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>{user.name}</h4>
+                   <div className="flex items-center gap-3">
+                      <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[11px] font-mono text-slate-500 uppercase tracking-widest leading-none">ID_{user.userIdNumber}</div>
+                      <div className={`px-4 py-2 border rounded-xl text-[11px] font-mono uppercase tracking-widest leading-none ${user.phone?.startsWith('GUEST_') ? 'bg-slate-500/10 border-slate-500/20 text-slate-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
                          {user.phone?.startsWith('GUEST_') ? 'GUEST' : 'REGISTERED'}
                       </div>
                    </div>
@@ -458,19 +465,19 @@ function UserRegistry({ searchQuery }: { searchQuery: string }) {
              </div>
 
              {/* Action Zone - Fixed Alignment */}
-             <div className="flex items-center gap-8 pl-8 border-l border-white/5 h-20">
-                <div className="flex flex-col items-end min-w-[120px] cursor-pointer group/vault" onClick={() => handleEditBalance(user._id, user.walletBalance)}>
-                   <span className="text-[9px] font-black uppercase text-slate-600 tracking-[0.3em] mb-1">Digital Vault</span>
+             <div className="flex items-center gap-12 pl-12 border-l border-white/5 h-24">
+                <div className="flex flex-col items-end min-w-[180px] cursor-pointer group/vault" onClick={() => handleEditBalance(user._id, user.walletBalance)}>
+                   <span className="text-[10px] font-black uppercase text-slate-600 tracking-[0.4em] mb-2">Digital Vault</span>
                    <div className="flex items-center gap-3">
-                      <span className={`text-4xl font-black italic tabular-nums ${user.isBlocked ? 'text-red-400' : 'text-white'}`}>₹{user.walletBalance.toLocaleString()}</span>
+                      <span className={`text-5xl font-black italic tabular-nums ${user.isBlocked ? 'text-red-400' : 'text-white'}`}>₹{user.walletBalance.toLocaleString()}</span>
                    </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                   <ActionBtn icon={<Plus size={20}/>} color="blue" title="Add Credits" onClick={() => handleAddBalance(user._id, user.walletBalance)} />
-                   <ActionBtn icon={<Cpu size={20}/>} color="amber" title="Neural Resplit" onClick={() => handleForceResplit(user._id, user.name)} />
-                   <ActionBtn icon={user.isBlocked ? <ShieldCheck size={24}/> : <XCircle size={24}/>} color={user.isBlocked ? 'emerald' : 'red'} title="Lock/Unlock" onClick={() => handleBlock(user._id, !!user.isBlocked)} />
-                   <button onClick={() => handleDelete(user._id, user.name)} className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center outline-none border border-white/5"><Trash2 size={20}/></button>
+                <div className="flex items-center gap-4">
+                   <ActionBtn icon={<Plus size={24}/>} color="blue" title="Add Credits" onClick={() => handleAddBalance(user._id, user.walletBalance)} />
+                   <ActionBtn icon={<Cpu size={24}/>} color="amber" title="Neural Resplit" onClick={() => handleForceResplit(user._id, user.name)} />
+                   <ActionBtn icon={user.isBlocked ? <ShieldCheck size={28}/> : <XCircle size={28}/>} color={user.isBlocked ? 'emerald' : 'red'} title="Lock/Unlock" onClick={() => handleBlock(user._id, !!user.isBlocked)} />
+                   <button onClick={() => handleDelete(user._id, user.name)} className="w-14 h-14 rounded-[20px] bg-slate-800 text-slate-500 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center outline-none border border-white/5"><Trash2 size={24}/></button>
                 </div>
              </div>
           </div>
