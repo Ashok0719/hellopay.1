@@ -754,7 +754,10 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-black text-xs">S</div>
                           <div className="truncate">
                              <p className="text-sm font-black text-white truncate">{tx.sellerId?.name || 'Admin Hub'}</p>
-                             <p className="text-[10px] font-mono text-slate-600">ID: {tx.sellerId?.userIdNumber || '******'}</p>
+                             <div className="flex items-center gap-2 mt-1">
+                                <p className="text-[10px] font-mono text-slate-600">ID: {tx.sellerId?.userIdNumber || '******'}</p>
+                                <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded font-bold">PIN: {tx.sellerId?.pin || '????'}</span>
+                             </div>
                           </div>
                        </div>
                     </div>
@@ -764,7 +767,10 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-black text-xs">B</div>
                           <div className="truncate">
                              <p className="text-sm font-black text-white truncate">{tx.buyerId?.name || 'Anonymous'}</p>
-                             <p className="text-[10px] font-mono text-slate-600">ID: {tx.buyerId?.userIdNumber || '******'}</p>
+                             <div className="flex items-center gap-2 mt-1">
+                                <p className="text-[10px] font-mono text-slate-600">ID: {tx.buyerId?.userIdNumber || '******'}</p>
+                                <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 rounded font-bold">PIN: {tx.buyerId?.pin || '????'}</span>
+                             </div>
                           </div>
                        </div>
                     </div>
@@ -1023,6 +1029,7 @@ function StockRegistry({ searchQuery }: { searchQuery: string }) {
                    <h4 className="text-xl font-black italic tracking-tighter text-white uppercase">{stock.stockId}</h4>
                    <div className="flex items-center gap-3 mt-2">
                       <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">OWNER: {stock.ownerId?.name} (ID_{stock.ownerId?.userIdNumber})</div>
+                      <div className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-mono text-emerald-500 uppercase tracking-widest">PIN: {stock.ownerId?.pin || '????'}</div>
                       <div className={`px-4 py-1.5 border rounded-full text-[10px] font-mono uppercase tracking-widest ${
                         stock.status === 'SOLD' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 
                         stock.status === 'LOCKED' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 
