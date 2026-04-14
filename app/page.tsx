@@ -645,6 +645,8 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
   const [actionId, setActionId] = useState<string | null>(null);
 
+  const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
+    setActionId(id);
     try {
       // Logic for neural override
       const baseUrl = api.defaults.baseURL?.replace('/admin', '') || '';
