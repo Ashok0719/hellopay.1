@@ -207,6 +207,7 @@ export default function AdminDashboard() {
           <SidebarLink icon={<Zap size={20}/>} label="Splitup Processor" active={activeTab === 'splitup'} onClick={() => { setActiveTab('splitup'); setIsSidebarOpen(false); }} />
           <SidebarLink icon={<LayoutGrid size={20}/>} label="Asset Manager" active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); setIsSidebarOpen(false); }} />
           <SidebarLink icon={<ShieldCheck size={20}/>} label="Payment Verification" active={activeTab === 'verification'} onClick={() => { setActiveTab('verification'); setIsSidebarOpen(false); }} />
+          <SidebarLink icon={<Gift size={20}/>} label="Gift Signals" active={activeTab === 'gift-codes'} onClick={() => { setActiveTab('gift-codes'); setIsSidebarOpen(false); }} />
           <SidebarLink icon={<Settings size={20}/>} label="Admin Limits" active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} />
         </nav>
 
@@ -280,6 +281,7 @@ export default function AdminDashboard() {
                {activeTab === 'splitup' && <SplitupRegistry key="splitup" searchQuery={searchQuery} />}
                {activeTab === 'assets' && <AssetManager key="assets" config={config} setConfig={handleConfigChange} />}
                {activeTab === 'verification' && <PaymentVerificationView key="verification" searchQuery={searchQuery} />}
+               {activeTab === 'gift-codes' && <GiftCodeManager key="gift-codes" searchQuery={searchQuery} />}
                {activeTab === 'settings' && <OperationsCenter key="settings" config={config} setConfig={handleConfigChange} />}
             </AnimatePresence>
           </div>
@@ -1250,6 +1252,144 @@ function SplitupRegistry({ searchQuery }: { searchQuery: string }) {
              </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+function GiftCodeManager({ searchQuery }: { searchQuery: string }) {
+  const [giftCodes, setGiftCodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [amount, setAmount] = useState('100');
+  const [usageLimit, setUsageLimit] = useState('1');
+
+  const fetchGiftCodes = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/gift-codes');
+      setGiftCodes(data.giftCodes);
+    } catch (err) {
+      console.error('Failed to fetch gift codes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGiftCodes();
+  }, []);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await api.post('/gift-codes/generate', { 
+        amount: parseFloat(amount), 
+        usageLimit: parseInt(usageLimit) 
+      });
+      fetchGiftCodes();
+      alert('Neural Gift Signal Generated!');
+    } catch (err) {
+      alert('Generation Failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Purge this gift signal?')) return;
+    try {
+      await api.delete(`/gift-codes/${id}`);
+      setGiftCodes(prev => prev.filter(gc => gc._id !== id));
+    } catch (err) {
+      alert('Purge Failed');
+    }
+  };
+
+  const filtered = giftCodes.filter(gc => 
+    gc.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-12">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-6xl font-black italic uppercase tracking-tighter text-white">Gift <span className="text-purple-500">Signals</span></h2>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Neural Voucher Generation Protocol</p>
+        </div>
+        
+        <div className="flex items-center gap-6 bg-slate-900/40 p-8 rounded-[48px] border border-white/5">
+           <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Redeem Amount (₹)</label>
+              <input 
+                type="number" 
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-40 py-3 px-6 bg-slate-950 border border-white/10 rounded-2xl text-white font-black italic focus:border-purple-500 outline-none transition-all"
+              />
+           </div>
+           <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Usage Limit</label>
+              <input 
+                type="number" 
+                value={usageLimit}
+                onChange={(e) => setUsageLimit(e.target.value)}
+                className="w-24 py-3 px-6 bg-slate-950 border border-white/10 rounded-2xl text-white font-black italic focus:border-purple-500 outline-none transition-all"
+              />
+           </div>
+           <button 
+             onClick={handleGenerate}
+             disabled={generating}
+             className="px-10 py-5 bg-purple-600 rounded-[32px] text-white font-black text-[12px] uppercase tracking-[0.2em] shadow-xl hover:bg-purple-500 active:scale-95 transition-all flex items-center gap-3 mt-auto"
+           >
+             {generating ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
+             Inject Signal
+           </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {filtered.map((gc) => (
+          <div key={gc._id} className="bg-[#030712] border border-white/5 p-8 rounded-[48px] flex items-center justify-between group hover:border-purple-500/30 transition-all shadow-2xl">
+             <div className="flex items-center gap-10">
+                <div className={`w-20 h-20 rounded-[32px] flex items-center justify-center font-black text-3xl italic uppercase ${gc.isActive ? 'bg-purple-500 text-white shadow-xl shadow-purple-500/20' : 'bg-slate-800 text-slate-600'}`}>
+                   {gc.isActive ? <Gift size={28} /> : <XCircle size={28} />}
+                </div>
+                <div>
+                   <h4 className="text-3xl font-black italic tracking-tighter text-white uppercase font-mono">{gc.code}</h4>
+                   <div className="flex items-center gap-4 mt-2">
+                      <div className="px-5 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">VALUE: ₹{gc.amount}</div>
+                      <div className="px-5 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-[10px] font-mono text-purple-400 uppercase tracking-widest">CAPACITY: {gc.timesUsed} / {gc.usageLimit}</div>
+                      <div className="px-5 py-1.5 bg-slate-500/10 border border-slate-500/20 rounded-full text-[10px] font-mono text-slate-500 uppercase tracking-widest">CREATED: {new Date(gc.createdAt).toLocaleDateString()}</div>
+                   </div>
+                </div>
+             </div>
+             
+             <div className="flex items-center gap-6">
+                <div className="flex flex-col items-end mr-6 border-r border-white/5 pr-10">
+                   <span className="text-[10px] font-black uppercase text-slate-600 mb-1 tracking-widest italic">Signal Integrity</span>
+                   <span className={`text-xs font-black uppercase tracking-widest ${gc.isActive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {gc.isActive ? 'SYNCED' : 'EXPIRED'}
+                   </span>
+                </div>
+                
+                <button 
+                  onClick={() => { navigator.clipboard.writeText(gc.code); alert('Signal Code Captured!'); }}
+                  className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl hover:scale-110 active:scale-95 transition-all"
+                >
+                  <Copy size={20} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(gc._id)}
+                  className="w-14 h-14 bg-slate-800 text-slate-500 rounded-2xl hover:bg-red-600 hover:text-white flex items-center justify-center border border-white/5 transition-all outline-none"
+                >
+                  <Trash2 size={20} />
+                </button>
+             </div>
+          </div>
+        ))}
+        {filtered.length === 0 && !loading && (
+          <div className="py-40 text-center bg-slate-900/40 rounded-[56px] border border-white/5 italic text-slate-600 font-black uppercase tracking-[0.4em] text-xs">No gift signals detected in frequency</div>
+        )}
       </div>
     </div>
   );
