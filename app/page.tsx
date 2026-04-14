@@ -886,7 +886,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                   </div>
                </div>
 
-                {tx.status === 'PENDING' || tx.status === 'PENDING_VERIFICATION' ? (
+                {['PENDING', 'PENDING_VERIFICATION', 'PENDING_PAYMENT'].includes(tx.status) ? (
                   <div className="flex gap-4">
                     <button 
                       onClick={() => handleAction(tx._id, 'SUCCESS')}
