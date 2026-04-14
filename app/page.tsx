@@ -658,13 +658,11 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
     setActionId(id);
     try {
-      // Logic for neural override
-      const baseUrl = api.defaults.baseURL?.replace('/admin', '') || '';
       if (action === 'SUCCESS') {
-        await api.post(`${baseUrl}/payments/approve/${id}`);
+        await api.post(`/payments/approve/${id}`);
       } else {
         const reason = prompt('Specify Rejection Logic Parameter:');
-        await api.post(`${baseUrl}/payments/reject/${id}`, { reason });
+        await api.post(`/payments/reject/${id}`, { reason });
       }
       fetchTxs();
     } catch (err: any) {
