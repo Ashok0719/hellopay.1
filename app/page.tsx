@@ -32,7 +32,9 @@ import {
   ArrowRightLeft,
   Database,
   Pin,
-  Star
+  Star,
+  Gift,
+  Copy
 } from 'lucide-react';
 import axios from 'axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
