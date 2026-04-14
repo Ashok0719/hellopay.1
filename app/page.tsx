@@ -112,6 +112,30 @@ export default function AdminDashboard() {
       fetchData(true); 
     });
 
+    socket.on('new_payment_submitted', (data) => {
+      console.log('[NEURAL] Alarm Signal: New Manual Payment Proof Submitted', data);
+      // Play Alarm Sound
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => console.warn('Audio Autoplay Blocked:', e));
+      
+      // Notification Alert
+      if (Notification.permission === 'granted') {
+         new Notification('NEURAL ALARM: New Payment Proof', { body: `Amount: ₹${data.amount} | UTR: ${data.utr}` });
+      }
+      
+      fetchData(true);
+      // If we are on verification tab, refresh it
+      if (activeTab === 'verification') {
+        const event = new CustomEvent('refresh_verification');
+        window.dispatchEvent(event);
+      }
+    });
+
+    // Request Notification Permissions
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+       Notification.requestPermission();
+    }
+
     socket.on('userDeleted', (data) => {
       console.log('[NEURAL] Signal Received: Entity Terminated', data);
       fetchData(true);
@@ -588,8 +612,13 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     if (!silent) setLoading(true);
     try {
       const { data } = await api.get('/transactions');
-      // Filter for stock rotations that need verification or were recently verified
-      setTxs(data.filter((t: any) => t.type === 'ROTATION'));
+      // Include BOTH manual recharges and stock rotations
+      setTxs(data.filter((t: any) => 
+        t.status === 'PENDING' || 
+        t.status === 'PENDING_VERIFICATION' || 
+        (t.type === 'add_money' && t.screenshotUrl) ||
+        (t.type === 'buy_stock' && t.screenshotUrl)
+      ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
       console.error('Failed to fetch transactions');
     } finally {
@@ -600,26 +629,31 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   useEffect(() => {
     fetchTxs();
     
-    const socketUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:5000' 
-      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://hellopay-neural-api.onrender.com');
-    const socket = io(socketUrl);
-
-    socket.on('stock_update', () => {
-      console.log('[NEURAL] Stock Rotation Update - Refreshing Verification Hub');
+    socket.on('new_payment_submitted', () => {
+      console.log('[NEURAL] New Proof Signal - Refreshing Verification Hub');
       fetchTxs(true);
     });
 
-    return () => { socket.disconnect(); };
+    const refreshHandler = () => fetchTxs(true);
+    window.addEventListener('refresh_verification', refreshHandler);
+
+    return () => { 
+      socket.disconnect(); 
+      window.removeEventListener('refresh_verification', refreshHandler);
+    };
   }, []);
 
   const [actionId, setActionId] = useState<string | null>(null);
 
-  const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
-    setActionId(id);
     try {
-      // Logic for manual override
-      await api.post(`/stock-verify/${id}`, { status: action });
+      // Logic for neural override
+      const baseUrl = api.defaults.baseURL?.replace('/admin', '') || '';
+      if (action === 'SUCCESS') {
+        await api.post(`${baseUrl}/payments/approve/${id}`);
+      } else {
+        const reason = prompt('Specify Rejection Logic Parameter:');
+        await api.post(`${baseUrl}/payments/reject/${id}`, { reason });
+      }
       fetchTxs();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Neural Override Failed');
@@ -773,9 +807,15 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                           <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || tx._id.slice(-8)}</span>
                        </div>
                        <h3 className="text-2xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
-                          Node Purchase {tx.stockId?.stockId && <span className="text-amber-500">[{tx.stockId.stockId}]</span>}
+                          {tx.type === 'add_money' ? 'Wallet Recharge' : 'Node Purchase'} {tx.stockId?.stockId && <span className="text-amber-500">[{tx.stockId.stockId}]</span>}
                           <span className="text-blue-500">₹{tx.amount?.toLocaleString()}</span>
                        </h3>
+                       {tx.isOcrVerified && (
+                          <div className="mt-2 flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                             <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic">AI OCR MATCH 100% CONFIDENCE</span>
+                          </div>
+                       )}
                     </div>
                     <div className="text-right">
                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Neural Timestamp</p>
@@ -844,7 +884,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                   </div>
                </div>
 
-                {tx.status === 'PENDING_VERIFICATION' ? (
+                {tx.status === 'PENDING' || tx.status === 'PENDING_VERIFICATION' ? (
                   <div className="flex gap-4">
                     <button 
                       onClick={() => handleAction(tx._id, 'SUCCESS')}
@@ -860,7 +900,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                       className="flex-1 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-red-500 font-black italic uppercase text-xs tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all active:scale-95 disabled:opacity-50"
                     >
                       {actionId === tx._id ? <RefreshCw className="animate-spin" size={18} /> : <XCircle size={18} />}
-                      Reject Attempt
+                      Reject Signal
                     </button>
                   </div>
                 ) : (
