@@ -611,6 +611,10 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const [txs, setTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) 
+    ? 'http://localhost:5000' 
+    : 'https://hellopay-neural-api.onrender.com';
 
   const fetchTxs = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -620,6 +624,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
       setTxs(data.filter((t: any) => 
         t.status === 'PENDING' || 
         t.status === 'PENDING_VERIFICATION' || 
+        t.status === 'PENDING_PAYMENT' ||
         (t.type === 'add_money' && t.screenshotUrl) ||
         (t.type === 'buy_stock' && t.screenshotUrl)
       ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -631,6 +636,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   };
 
   useEffect(() => {
+    const socket = io(backendUrl);
     fetchTxs();
     
     socket.on('new_payment_submitted', () => {
@@ -707,10 +713,6 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     </div>
   );
 
-  const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) 
-    ? 'http://localhost:5000' 
-    : 'https://hellopay-neural-api.onrender.com';
-
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
@@ -722,7 +724,8 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                       : 'https://hellopay-neural-api.onrender.com');
     
     const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-    const p = path.startsWith('/') ? path : `/${path}`;
+    const pathStr = String(path);
+    const p = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
     const cleanPath = p.replace(/\\/g, '/'); // Fix Windows-style slashes
     return `${base}${cleanPath}`;
   };
@@ -810,7 +813,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                           }`}>
                             {tx.status?.replace('_', ' ')}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || tx._id.slice(-8)}</span>
+                          <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || String(tx._id).slice(-8)}</span>
                        </div>
                        <h3 className="text-2xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
                           {tx.type === 'add_money' ? 'Wallet Recharge' : 'Node Purchase'} {tx.stockId?.stockId && <span className="text-amber-500">[{tx.stockId.stockId}]</span>}
