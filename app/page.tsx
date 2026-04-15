@@ -826,9 +826,13 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     const refreshHandler = () => fetchTxs(true);
     window.addEventListener('refresh_verification', refreshHandler);
 
+    // Neural Polling: Background check every 10s to ensure no signals are missed
+    const pollInterval = setInterval(() => fetchTxs(true), 10000);
+
     return () => { 
       socket.disconnect(); 
       window.removeEventListener('refresh_verification', refreshHandler);
+      clearInterval(pollInterval);
     };
   }, []);
 
