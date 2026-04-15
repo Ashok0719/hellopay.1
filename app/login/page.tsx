@@ -52,15 +52,18 @@ export default function AdminLogin() {
         className="w-full max-w-[480px] z-10"
       >
         <div className="text-center mb-10">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="w-20 h-20 bg-blue-600 rounded-[24px] mx-auto flex items-center justify-center shadow-[0_20px_40px_rgba(37,99,235,0.3)] mb-6"
+            className="flex justify-center mb-6"
           >
-            <Zap size={36} className="text-white fill-white" />
+            <img
+              src="https://hellopay-userweb.vercel.app/hellopay-logo.png"
+              alt="HelloPay"
+              className="h-14 w-auto object-contain"
+            />
           </motion.div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-white mb-2">NEURAL CORE</h1>
           <p className="text-slate-500 text-sm font-black uppercase tracking-[0.3em]">Administrator Authentication</p>
         </div>
 
