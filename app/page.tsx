@@ -812,10 +812,15 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     });
 
     socket.on('payment_proof_preview', (data) => {
-      console.log('[NEURAL] Live Preview Signal Received:', data);
-      setTxs(prev => prev.map(tx => 
-        tx._id === data.transactionId ? { ...tx, screenshotUrl: data.previewUrl } : tx
-      ));
+      console.log('[NEURAL] ⚡ LIVE PREVIEW SIGNAL:', data);
+      const updateList = (list: any[]) => list.map(tx => {
+        // Match by either MongoDB ID or the custom Transaction ID string
+        const isMatch = tx._id === data.transactionId || tx.transactionId === data.transactionId;
+        return isMatch ? { ...tx, screenshotUrl: data.previewUrl, status: tx.status === 'PENDING_PAYMENT' ? 'PENDING_VERIFICATION' : tx.status } : tx;
+      });
+      
+      setTxs(prev => updateList(prev));
+      setHistoryTxs(prev => updateList(prev));
     });
 
     const refreshHandler = () => fetchTxs(true);
