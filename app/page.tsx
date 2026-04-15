@@ -143,24 +143,30 @@ export default function AdminDashboard() {
     socket.on('new_payment_session', (data) => {
       console.log('[NEURAL] 🔔 Payment Session Initiated:', data);
       
-      // Play alert sound
+      // Play LOUD multi-pulse alert sound
       try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
-        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.5);
+        const playTone = (freq: number, startTime: number, duration: number, vol: number) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
+          gain.gain.setValueAtTime(vol, startTime + duration - 0.05);
+          gain.gain.linearRampToValueAtTime(0, startTime + duration);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        };
+        // 3-pulse alarm: HIGH - LOW - HIGH
+        playTone(1046, ctx.currentTime,        0.18, 0.8);
+        playTone(784,  ctx.currentTime + 0.22, 0.18, 0.8);
+        playTone(1046, ctx.currentTime + 0.44, 0.28, 0.9);
       } catch (e) {
-        // Fallback to MP3
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-        audio.volume = 0.5;
+        audio.volume = 1.0;
         audio.play().catch(() => {});
       }
 
@@ -239,7 +245,8 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.85 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="pointer-events-auto relative overflow-hidden"
+              className="pointer-events-auto relative overflow-hidden cursor-pointer"
+              onClick={() => { setActiveTab('verification'); dismissAlert(alert.id); }}
             >
               {/* Glow border */}
               <div className="absolute -inset-[1px] rounded-[28px] bg-gradient-to-br from-amber-400/60 via-orange-500/40 to-red-500/30 blur-[2px]" />
@@ -257,7 +264,7 @@ export default function AdminDashboard() {
                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-400">Live Payment Alert</span>
                   </div>
                   <button 
-                    onClick={() => dismissAlert(alert.id)}
+                    onClick={(e) => { e.stopPropagation(); dismissAlert(alert.id); }}
                     className="w-7 h-7 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all text-xs font-black"
                   >✕</button>
                 </div>
@@ -274,7 +281,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-black/30 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
+                  <div className="bg-black/30 rounded-2xl p-4 border border-white/5 flex items-center justify-between mb-3">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Amount Due</p>
                       <p className="text-3xl font-black italic text-white tracking-tighter">₹{alert.amount}</p>
@@ -287,7 +294,12 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest mt-3 text-center">
+                  {/* CTA */}
+                  <div className="w-full py-3 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-2xl text-center transition-all">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">⚡ Click to Monitor Payment</span>
+                  </div>
+
+                  <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest mt-2 text-center">
                     Auto-dismisses in 8s • {new Date(alert.ts).toLocaleTimeString()}
                   </p>
                 </div>
