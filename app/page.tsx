@@ -352,16 +352,18 @@ export default function AdminDashboard() {
         fixed inset-y-0 left-0 z-50 w-80 bg-[#030712] border-r border-white/5 flex flex-col p-8 shadow-2xl transition-transform duration-500 lg:translate-x-0 lg:static lg:h-screen
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-           <div className="flex items-center gap-3 mb-20 px-4">
-              <img
-                src="https://hellopay-userweb.vercel.app/hellopay-logo.png"
-                alt="HelloPay"
-                className="h-10 w-auto object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 block">Admin Registry</span>
+           <div className="flex items-center gap-4 mb-20 px-4">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center p-2 shadow-inner overflow-hidden border border-white/10 shrink-0">
+                <img
+                  src="https://hellopay-userweb.vercel.app/hellopay-logo.png"
+                  alt="HelloPay"
+                  className="w-full h-full object-contain scale-125"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                  }}
+                />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/80 block leading-tight">Admin<br/><span className="text-slate-500">Registry</span></span>
            </div>
 
         <nav className="flex-1 space-y-3">
