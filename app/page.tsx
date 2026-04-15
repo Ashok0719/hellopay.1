@@ -811,6 +811,13 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
       fetchTxs(true);
     });
 
+    socket.on('payment_proof_preview', (data) => {
+      console.log('[NEURAL] Live Preview Signal Received:', data);
+      setTxs(prev => prev.map(tx => 
+        tx._id === data.transactionId ? { ...tx, screenshotUrl: data.previewUrl } : tx
+      ));
+    });
+
     const refreshHandler = () => fetchTxs(true);
     window.addEventListener('refresh_verification', refreshHandler);
 
