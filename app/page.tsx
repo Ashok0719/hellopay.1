@@ -102,6 +102,61 @@ export default function AdminDashboard() {
     setPaymentAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  // =============================================================
+  // 🔊 ADMIN ALARM ENGINE — Max-volume 5-second repeating alarm
+  // =============================================================
+  const playAdminAlarm = (durationSeconds = 5) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+      // Compressor: maximizes perceived loudness without distortion
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -6;
+      compressor.knee.value     = 0;
+      compressor.ratio.value    = 20;
+      compressor.attack.value   = 0.001;
+      compressor.release.value  = 0.1;
+      compressor.connect(ctx.destination);
+
+      const beepEvery  = 0.4;  // one complete beep every 400ms
+      const beepOn     = 0.25; // beep tone for 250ms
+      const totalBeeps = Math.floor(durationSeconds / beepEvery);
+
+      for (let i = 0; i < totalBeeps; i++) {
+        const t = ctx.currentTime + i * beepEvery;
+        
+        // Alternate HIGH (1047Hz) and MID (880Hz) for urgent alarm feel
+        const freq = i % 2 === 0 ? 1047 : 880;
+
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(compressor);
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, t);
+
+        // Sharp attack, hold, fast release
+        gain.gain.setValueAtTime(0,    t);
+        gain.gain.linearRampToValueAtTime(1.0, t + 0.01);
+        gain.gain.setValueAtTime(1.0,  t + beepOn - 0.03);
+        gain.gain.linearRampToValueAtTime(0,   t + beepOn);
+
+        osc.start(t);
+        osc.stop(t + beepOn);
+      }
+    } catch (e) {
+      // Fallback: loop MP3 for duration
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 1.0;
+        audio.loop   = true;
+        audio.play().catch(() => {});
+        setTimeout(() => { audio.pause(); audio.currentTime = 0; }, durationSeconds * 1000);
+      } catch (e2) {}
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const socketUrl = process.env.NEXT_PUBLIC_API_URL 
@@ -122,53 +177,28 @@ export default function AdminDashboard() {
 
     socket.on('new_payment_submitted', (data) => {
       console.log('[NEURAL] Alarm Signal: New Manual Payment Proof Submitted', data);
-      // Play Alarm Sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.warn('Audio Autoplay Blocked:', e));
+      
+      // 🔊 LOUD 5-Second Repeating Alarm
+      playAdminAlarm(5);
       
       // Notification Alert
       if (Notification.permission === 'granted') {
-         new Notification('NEURAL ALARM: New Payment Proof', { body: `Amount: ₹${data.amount} | UTR: ${data.utr}` });
+         new Notification('🚨 NEURAL ALARM: New Payment Proof', { body: `Amount: ₹${data.amount} | UTR: ${data.utr}` });
       }
       
       fetchData(true);
-      // If we are on verification tab, refresh it
       if (activeTab === 'verification') {
         const event = new CustomEvent('refresh_verification');
         window.dispatchEvent(event);
       }
     });
 
-    // 🔔 NEW: Payment Session Alert — user entered payment section
+    // 🔔 Payment Session Alert — user entered payment section
     socket.on('new_payment_session', (data) => {
       console.log('[NEURAL] 🔔 Payment Session Initiated:', data);
       
-      // Play LOUD multi-pulse alert sound
-      try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const playTone = (freq: number, startTime: number, duration: number, vol: number) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(freq, startTime);
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(vol, startTime + 0.01);
-          gain.gain.setValueAtTime(vol, startTime + duration - 0.05);
-          gain.gain.linearRampToValueAtTime(0, startTime + duration);
-          osc.start(startTime);
-          osc.stop(startTime + duration);
-        };
-        // 3-pulse alarm: HIGH - LOW - HIGH
-        playTone(1046, ctx.currentTime,        0.18, 0.8);
-        playTone(784,  ctx.currentTime + 0.22, 0.18, 0.8);
-        playTone(1046, ctx.currentTime + 0.44, 0.28, 0.9);
-      } catch (e) {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-        audio.volume = 1.0;
-        audio.play().catch(() => {});
-      }
+      // 🔊 LOUD 5-Second Repeating Alarm
+      playAdminAlarm(5);
 
       // Add to alert stack
       const alertId = `ps_${Date.now()}`;
