@@ -883,16 +883,11 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     if (!path) return '';
     if (path.startsWith('http')) return path;
     
-    // Neural Domain Resolver: Priority Local hostname > Env > Hardcoded Fallback
-    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const apiBase = isLocal 
-      ? 'http://localhost:5000'
-      : (process.env.NEXT_PUBLIC_API_URL?.replace(/\/api.*$/, '') || 'https://hellopay-neural-api.onrender.com');
-    
-    const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+    // Neural Domain Resolver: Robust path normalization and production URL prioritization
+    const base = 'https://hellopay-neural-api.onrender.com';
     const pathStr = String(path);
     const p = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
-    const cleanPath = p.replace(/\\/g, '/'); // Fix Windows-style slashes
+    const cleanPath = p.replace(/\\/g, '/').replace(/\/+/g, '/'); // Fix slashes and double slashes
     return `${base}${cleanPath}`;
   };
 
