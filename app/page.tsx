@@ -771,8 +771,10 @@ function AssetManager({ config, setConfig }: any) {
 // --- Payment Verification View ---
 function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
   const [txs, setTxs] = useState<any[]>([]);
+  const [historyTxs, setHistoryTxs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [actionError, setActionError] = useState('');
   
   const backendUrl = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) 
     ? 'http://localhost:5000' 
@@ -782,13 +784,17 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     if (!silent) setLoading(true);
     try {
       const { data } = await api.get('/transactions');
-      // Include BOTH manual recharges and stock rotations
+      // PENDING — needs admin action
       setTxs(data.filter((t: any) => 
         t.status === 'PENDING' || 
         t.status === 'PENDING_VERIFICATION' || 
         t.status === 'PENDING_PAYMENT' ||
-        (t.type === 'add_money' && t.screenshotUrl) ||
-        (t.type === 'buy_stock' && t.screenshotUrl)
+        (t.type === 'add_money' && t.screenshotUrl && t.status !== 'SUCCESS' && t.status !== 'FAILED') ||
+        (t.type === 'buy_stock' && t.screenshotUrl && t.status !== 'SUCCESS' && t.status !== 'FAILED')
+      ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      // HISTORY — already processed
+      setHistoryTxs(data.filter((t: any) => 
+        t.status === 'SUCCESS' || t.status === 'FAILED'
       ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
       console.error('Failed to fetch transactions');
@@ -819,6 +825,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
   const handleAction = async (id: string, action: 'SUCCESS' | 'FAILED') => {
     setActionId(id);
+    setActionError('');
     try {
       if (action === 'SUCCESS') {
         await api.post(`/payments/approve/${id}`);
@@ -828,7 +835,7 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
       }
       fetchTxs();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Neural Override Failed');
+      setActionError(err.response?.data?.message || 'Neural Override Failed');
     } finally {
       setActionId(null);
     }
@@ -1083,13 +1090,109 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
             </div>
           </div>
         ))}
-        {filteredTxs.length === 0 && (
-           <div className="py-40 text-center bg-slate-900/40 rounded-[56px] border-2 border-dashed border-white/5">
-              <Activity size={48} className="mx-auto text-slate-800 mb-6" />
-              <p className="text-sm font-black uppercase tracking-[0.5em] text-slate-700 italic">No neural verification tasks in buffer</p>
-           </div>
+      </div>
+
+      {/* ─────────────── HISTORY SECTION ─────────────── */}
+      <div className="mt-16 space-y-6">
+        <div className="flex items-center gap-4">
+          <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white">Transaction <span className="text-slate-500">History</span></h3>
+          <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{historyTxs.length} records</span>
+          </div>
+        </div>
+
+        {historyTxs.length === 0 ? (
+          <div className="py-16 text-center bg-slate-900/20 rounded-[40px] border border-dashed border-white/5">
+            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-700">No history yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {historyTxs.map((tx) => (
+              <div key={tx._id} className={`bg-[#030712] border rounded-[32px] p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-xl transition-all ${
+                tx.status === 'SUCCESS' 
+                  ? 'border-emerald-500/20 bg-emerald-500/[0.02]' 
+                  : 'border-red-500/20 bg-red-500/[0.02]'
+              }`}>
+
+                {/* Status Icon */}
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xl ${
+                  tx.status === 'SUCCESS' 
+                    ? 'bg-emerald-500/10 shadow-emerald-500/10' 
+                    : 'bg-red-500/10 shadow-red-500/10'
+                }`}>
+                  {tx.status === 'SUCCESS' 
+                    ? <CheckCircle size={28} className="text-emerald-500" />
+                    : <XCircle size={28} className="text-red-500" />}
+                </div>
+
+                {/* Screenshot thumbnail */}
+                {(tx.screenshot || tx.screenshotUrl) && (
+                  <a href={getImageUrl(tx.screenshot || tx.screenshotUrl)} target="_blank" rel="noreferrer"
+                    className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shrink-0 hover:scale-110 transition-all">
+                    <img src={getImageUrl(tx.screenshot || tx.screenshotUrl)} alt="proof" className="w-full h-full object-cover" />
+                  </a>
+                )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                      tx.status === 'SUCCESS' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}>
+                      {tx.status === 'SUCCESS' ? '✓ Approved' : '✕ Rejected'}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-600">{tx.transactionId || String(tx._id).slice(-8)}</span>
+                    <span className="text-[10px] font-mono text-slate-600">{new Date(tx.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-white font-black text-lg">₹{tx.amount?.toLocaleString()}</span>
+                    <span className="text-slate-500 text-[11px] font-black uppercase">{tx.type === 'add_money' ? 'Wallet Recharge' : 'Stock Purchase'}</span>
+                    {tx.utr && <span className="text-amber-400 font-mono text-[11px]">UTR: {tx.utr}</span>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 mt-2">
+                    {(tx.buyerId?.name || tx.senderId?.name) && (
+                      <span className="text-[10px] text-slate-500 font-black uppercase">
+                        Buyer: <span className="text-white">{tx.buyerId?.name || tx.senderId?.name}</span>
+                      </span>
+                    )}
+                    {tx.sellerId?.name && (
+                      <span className="text-[10px] text-slate-500 font-black uppercase">
+                        Seller: <span className="text-white">{tx.sellerId?.name}</span>
+                      </span>
+                    )}
+                    {tx.description?.includes('Rejected') && (
+                      <span className="text-[10px] text-red-400 font-black">{tx.description}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Final status badge */}
+                <div className={`px-6 py-3 rounded-2xl border shrink-0 ${
+                  tx.status === 'SUCCESS'
+                    ? 'bg-emerald-500/10 border-emerald-500/20'
+                    : 'bg-red-500/10 border-red-500/20'
+                }`}>
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${
+                    tx.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
+                    {tx.status === 'SUCCESS' ? '✓ COMPLETE' : '✕ FAILED'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Action Error Toast */}
+      {actionError && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] px-8 py-4 bg-red-600 text-white rounded-2xl font-black text-sm shadow-2xl animate-bounce">
+          ⚠ {actionError}
+          <button onClick={() => setActionError('')} className="ml-4 opacity-70 hover:opacity-100">✕</button>
+        </div>
+      )}
     </div>
   );
 }
