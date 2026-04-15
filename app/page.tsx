@@ -96,6 +96,12 @@ export default function AdminDashboard() {
     }
   };
 
+  const [paymentAlerts, setPaymentAlerts] = useState<any[]>([]);
+
+  const dismissAlert = (id: string) => {
+    setPaymentAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
   useEffect(() => {
     fetchData();
     const socketUrl = process.env.NEXT_PUBLIC_API_URL 
@@ -130,6 +136,49 @@ export default function AdminDashboard() {
       if (activeTab === 'verification') {
         const event = new CustomEvent('refresh_verification');
         window.dispatchEvent(event);
+      }
+    });
+
+    // 🔔 NEW: Payment Session Alert — user entered payment section
+    socket.on('new_payment_session', (data) => {
+      console.log('[NEURAL] 🔔 Payment Session Initiated:', data);
+      
+      // Play alert sound
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.5);
+      } catch (e) {
+        // Fallback to MP3
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+      }
+
+      // Add to alert stack
+      const alertId = `ps_${Date.now()}`;
+      setPaymentAlerts(prev => [{ id: alertId, ...data, ts: new Date() }, ...prev.slice(0, 4)]);
+
+      // Auto-dismiss after 8 seconds
+      setTimeout(() => {
+        setPaymentAlerts(prev => prev.filter(a => a.id !== alertId));
+      }, 8000);
+
+      // Browser notification
+      if (Notification.permission === 'granted') {
+        new Notification('⚡ Payment Session Started', { 
+          body: `${data.userName} is paying ₹${data.amount} — Monitor now!`,
+          icon: '/favicon.ico'
+        });
       }
     });
 
@@ -179,6 +228,75 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-blue-500/30 overflow-hidden flex">
+
+      {/* ⚡ Payment Session Alert Stack */}
+      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none" style={{maxWidth: '380px'}}>
+        <AnimatePresence>
+          {paymentAlerts.map((alert) => (
+            <motion.div
+              key={alert.id}
+              initial={{ opacity: 0, x: 100, scale: 0.85 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.85 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="pointer-events-auto relative overflow-hidden"
+            >
+              {/* Glow border */}
+              <div className="absolute -inset-[1px] rounded-[28px] bg-gradient-to-br from-amber-400/60 via-orange-500/40 to-red-500/30 blur-[2px]" />
+              <div className="relative bg-gradient-to-br from-slate-900 to-[#0a0a1a] rounded-[28px] p-5 shadow-2xl border border-amber-500/20 overflow-hidden">
+                {/* Animated background pulse */}
+                <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] animate-pulse" />
+                
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <div className="w-3 h-3 bg-amber-400 rounded-full animate-ping absolute" />
+                      <div className="w-3 h-3 bg-amber-400 rounded-full relative" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-400">Live Payment Alert</span>
+                  </div>
+                  <button 
+                    onClick={() => dismissAlert(alert.id)}
+                    className="w-7 h-7 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all text-xs font-black"
+                  >✕</button>
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-2xl font-black text-amber-400 italic shrink-0">
+                      {alert.userName?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-base leading-none tracking-tight">{alert.userName}</p>
+                      <p className="text-slate-400 text-[10px] font-medium mt-1">Entered payment checkout</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/30 rounded-2xl p-4 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Amount Due</p>
+                      <p className="text-3xl font-black italic text-white tracking-tighter">₹{alert.amount}</p>
+                    </div>
+                    <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <p className="text-[8px] font-black uppercase tracking-widest text-amber-400 mb-0.5">Type</p>
+                      <p className="text-[10px] font-black text-amber-300 uppercase">
+                        {alert.type === 'stock_buy' ? '📦 Stock Buy' : '💳 Recharge'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest mt-3 text-center">
+                    Auto-dismisses in 8s • {new Date(alert.ts).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* Mobile Toggle */}
       <button 
         className="lg:hidden fixed bottom-8 right-8 z-[100] w-16 h-16 bg-blue-600 rounded-full shadow-2xl flex items-center justify-center text-white border-4 border-slate-900 active:scale-90 transition-all"
