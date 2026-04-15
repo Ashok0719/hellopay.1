@@ -785,12 +785,11 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     try {
       const { data } = await api.get('/transactions');
       // PENDING — needs admin action
+      const pendingStatuses = ['PENDING', 'PENDING_VERIFICATION', 'PENDING_PAYMENT'];
       setTxs(data.filter((t: any) => 
-        t.status === 'PENDING' || 
-        t.status === 'PENDING_VERIFICATION' || 
-        t.status === 'PENDING_PAYMENT' ||
-        (t.type === 'add_money' && t.screenshotUrl && t.status !== 'SUCCESS' && t.status !== 'FAILED') ||
-        (t.type === 'buy_stock' && t.screenshotUrl && t.status !== 'SUCCESS' && t.status !== 'FAILED')
+        pendingStatuses.includes(t.status) || 
+        (t.screenshotUrl && !['SUCCESS', 'FAILED'].includes(t.status)) ||
+        (t.screenshot  && !['SUCCESS', 'FAILED'].includes(t.status))
       ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       // HISTORY — already processed
       setHistoryTxs(data.filter((t: any) => 
@@ -884,11 +883,11 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
     if (!path) return '';
     if (path.startsWith('http')) return path;
     
-    // Neural Domain Resolver: Priority to Env > Local > Hardcoded Fallback
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')) || 
-                    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-                      ? 'http://localhost:5000' 
-                      : 'https://hellopay-neural-api.onrender.com');
+    // Neural Domain Resolver: Priority Local hostname > Env > Hardcoded Fallback
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const apiBase = isLocal 
+      ? 'http://localhost:5000'
+      : (process.env.NEXT_PUBLIC_API_URL?.replace(/\/api.*$/, '') || 'https://hellopay-neural-api.onrender.com');
     
     const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
     const pathStr = String(path);
@@ -974,11 +973,13 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                     <div>
                        <div className="flex items-center gap-3 mb-1">
                           <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                            tx.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                            tx.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+                            tx.status?.toUpperCase() === 'SUCCESS' || tx.status?.toUpperCase() === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            ['FAILED', 'REJECTED', 'CANCELED'].includes(tx.status?.toUpperCase()) ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
                             'bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse'
                           }`}>
-                            {tx.status?.replace('_', ' ')}
+                            {['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? 'COMPLETED' : 
+                             ['FAILED', 'REJECTED', 'CANCELED'].includes(tx.status?.toUpperCase()) ? 'FAILED' : 
+                             tx.status?.replace('_', ' ')}
                           </span>
                           <span className="text-[10px] font-mono text-slate-600">ID: {tx.transactionId || String(tx._id).slice(-8)}</span>
                        </div>
@@ -1082,8 +1083,8 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                 ) : (
                   <div className="py-6 px-10 bg-white/5 rounded-[32px] border border-white/5 text-center flex flex-col justify-center w-full">
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600 mb-2">Neural Processed</p>
-                    <div className={`text-2xl font-black italic uppercase tracking-tighter ${tx.status === 'SUCCESS' ? 'text-emerald-500' : 'text-red-500'}`}>
-                       Signal {tx.status}
+                    <div className={`text-2xl font-black italic uppercase tracking-tighter ${['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? 'text-emerald-500' : 'text-red-500'}`}>
+                       Signal {['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? 'COMPLETED' : 'FAILED'}
                     </div>
                   </div>
                 )}
@@ -1137,11 +1138,11 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                      tx.status === 'SUCCESS' 
+                      ['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) 
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                         : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}>
-                      {tx.status === 'SUCCESS' ? '✓ Approved' : '✕ Rejected'}
+                      {['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? '✓ COMPLETED' : '✕ FAILED'}
                     </span>
                     <span className="text-[10px] font-mono text-slate-600">{tx.transactionId || String(tx._id).slice(-8)}</span>
                     <span className="text-[10px] font-mono text-slate-600">{new Date(tx.createdAt).toLocaleString()}</span>
@@ -1175,9 +1176,9 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
                     : 'bg-red-500/10 border-red-500/20'
                 }`}>
                   <p className={`text-[10px] font-black uppercase tracking-widest ${
-                    tx.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400'
+                    ['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? 'text-emerald-400' : 'text-red-400'
                   }`}>
-                    {tx.status === 'SUCCESS' ? '✓ COMPLETE' : '✕ FAILED'}
+                    {['SUCCESS', 'COMPLETED'].includes(tx.status?.toUpperCase()) ? '✓ COMPLETED' : '✕ FAILED'}
                   </p>
                 </div>
               </div>
