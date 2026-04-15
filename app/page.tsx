@@ -910,6 +910,16 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
             </div>
           </div>
           <div className="flex items-center gap-6">
+             <button 
+               onClick={() => {
+                 const allPendingIds = filteredTxs.map(t => t._id);
+                 if (selectedIds.length === filteredTxs.length) setSelectedIds([]);
+                 else setSelectedIds(allPendingIds);
+               }}
+               className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all font-mono"
+             >
+               {selectedIds.length === filteredTxs.length ? 'Deselect Pending' : 'Select All Pending'}
+             </button>
              {selectedIds.length > 0 && (
                 <button 
                   onClick={handleBulkDelete}
@@ -1097,10 +1107,32 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
 
       {/* ─────────────── HISTORY SECTION ─────────────── */}
       <div className="mt-16 space-y-6">
-        <div className="flex items-center gap-4">
-          <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white">Transaction <span className="text-slate-500">History</span></h3>
-          <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{historyTxs.length} records</span>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-slate-900/40 p-8 rounded-[40px] border border-white/5">
+          <div className="flex items-center gap-4">
+            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white">Transaction <span className="text-slate-500">History</span></h3>
+            <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{historyTxs.length} records</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => {
+                const allHistoryIds = historyTxs.map(t => t._id);
+                if (selectedIds.length === historyTxs.length) setSelectedIds([]);
+                else setSelectedIds(allHistoryIds);
+              }}
+              className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all font-mono"
+            >
+              {selectedIds.length === historyTxs.length ? 'Deselect History' : 'Select All History'}
+            </button>
+            {selectedIds.length > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="px-8 py-3 bg-red-600/20 text-red-500 rounded-2xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-600 hover:text-white transition-all shadow-xl"
+              >
+                <Trash2 size={16} /> Delete Selected ({selectedIds.length})
+              </button>
+            )}
           </div>
         </div>
 
@@ -1111,11 +1143,17 @@ function PaymentVerificationView({ searchQuery }: { searchQuery: string }) {
         ) : (
           <div className="space-y-3">
             {historyTxs.map((tx) => (
-              <div key={tx._id} className={`bg-[#030712] border rounded-[32px] p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-xl transition-all ${
-                tx.status === 'SUCCESS' 
-                  ? 'border-emerald-500/20 bg-emerald-500/[0.02]' 
-                  : 'border-red-500/20 bg-red-500/[0.02]'
+              <div key={tx._id} className={`group bg-[#030712] border rounded-[32px] p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-xl transition-all relative ${
+                selectedIds.includes(tx._id) ? 'border-blue-500 ring-1 ring-blue-500/20' : tx.status === 'SUCCESS' ? 'border-emerald-500/20 bg-emerald-500/[0.02]' : 'border-red-500/20 bg-red-500/[0.02]'
               }`}>
+                
+                {/* Multi-Select Checkbox */}
+                <div 
+                  onClick={() => toggleSelect(tx._id)}
+                  className={`w-10 h-10 rounded-xl border-4 cursor-pointer flex items-center justify-center transition-all shrink-0 ${selectedIds.includes(tx._id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-white/10 text-transparent hover:border-blue-500 hover:text-white/10'}`}
+                >
+                   <Check size={22} />
+                </div>
 
                 {/* Status Icon */}
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xl ${
